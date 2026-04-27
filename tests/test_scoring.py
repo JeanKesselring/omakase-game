@@ -9,7 +9,8 @@ def test_score_omakase_set():
         Card(2, is_sushi=True, sushi_card=SushiCard.CONGER_EEL),
         Card(3, is_sushi=True, sushi_card=SushiCard.CRAB),
         Card(4, is_sushi=True, sushi_card=SushiCard.TUNA),
-        Card(5, is_sushi=True, sushi_card=SushiCard.SALMON_ROE),
+        Card(5, is_sushi=True, sushi_card=SushiCard.SALMON),
+        Card(6, is_sushi=True, sushi_card=SushiCard.SALMON_ROE),
     ]
 
     score = calculate_score(hand)
@@ -108,9 +109,10 @@ def test_score_mixed_hand():
         Card(2, is_sushi=True, sushi_card=SushiCard.CONGER_EEL),
         Card(3, is_sushi=True, sushi_card=SushiCard.CRAB),
         Card(4, is_sushi=True, sushi_card=SushiCard.TUNA),
-        Card(5, is_sushi=True, sushi_card=SushiCard.SALMON_ROE),
-        Card(6, is_sushi=True, sushi_card=SushiCard.OMELETTE),
-        Card(7, is_sushi=False, action_card=ActionCard.CHOPSTICKS),
+        Card(5, is_sushi=True, sushi_card=SushiCard.SALMON),
+        Card(6, is_sushi=True, sushi_card=SushiCard.SALMON_ROE),
+        Card(7, is_sushi=True, sushi_card=SushiCard.OMELETTE),
+        Card(8, is_sushi=False, action_card=ActionCard.CHOPSTICKS),
     ]
 
     score = calculate_score(hand)
@@ -123,10 +125,11 @@ def test_score_overlapping_sets():
         Card(2, is_sushi=True, sushi_card=SushiCard.CONGER_EEL),
         Card(3, is_sushi=True, sushi_card=SushiCard.CRAB),
         Card(4, is_sushi=True, sushi_card=SushiCard.TUNA),
-        Card(5, is_sushi=True, sushi_card=SushiCard.SALMON_ROE),
-        Card(6, is_sushi=True, sushi_card=SushiCard.SHRIMP),
-        Card(7, is_sushi=True, sushi_card=SushiCard.TUNA_ROLL),
-        Card(8, is_sushi=True, sushi_card=SushiCard.SALMON_ROLL),
+        Card(5, is_sushi=True, sushi_card=SushiCard.SALMON),
+        Card(6, is_sushi=True, sushi_card=SushiCard.SALMON_ROE),
+        Card(7, is_sushi=True, sushi_card=SushiCard.SHRIMP),
+        Card(8, is_sushi=True, sushi_card=SushiCard.TUNA_ROLL),
+        Card(9, is_sushi=True, sushi_card=SushiCard.SALMON_ROLL),
     ]
 
     score = calculate_score(hand)

@@ -1,10 +1,10 @@
 import numpy as np
-from typing import List, Tuple, Optional, Set
+from typing import List, Optional, Set
 from dataclasses import dataclass, field
 from copy import deepcopy
 import random
 
-from .cards import Card, SushiCard, ActionCard, create_deck, CARD_VALUES
+from .cards import Card, SushiCard, ActionCard, create_deck
 
 
 class Phase(int):
@@ -12,6 +12,8 @@ class Phase(int):
     PHASE_2 = 1
     PHASE_3 = 2
     PHASE_4 = 3
+    CHEFS_CHOICE_SELECT_CARDS = 4
+    CHEFS_CHOICE_SELECT_POSITIONS = 5
 
 
 @dataclass
@@ -37,6 +39,10 @@ class GameState:
     game_ending: bool = False
     game_over: bool = False
     reshuffles_used: int = 0
+    chefs_choice_drawn_cards: List[Card] = field(default_factory=list)
+    chefs_choice_selected_cards: List[Card] = field(default_factory=list)
+    chefs_choice_selected_positions: List[int] = field(default_factory=list)
+    chefs_choice_return_phase: int = Phase.PHASE_2
 
     def __post_init__(self):
         if not self.players:
@@ -74,15 +80,10 @@ def initialize_game(num_players: int = 2, seed: Optional[int] = None) -> GameSta
 
 
 def draw_from_deck(state: GameState) -> Card:
+    """Draw top card from deck; sets game_over if deck is empty (no reshuffling per rules)."""
     if not state.deck:
-        if state.reshuffles_used >= (state.num_players - 1):
-            state.game_over = True
-            return None
-        state.deck = state.trash[:]
-        random.shuffle(state.deck)
-        state.trash = []
-        state.reshuffles_used += 1
-
+        state.game_over = True
+        return None
     return state.deck.pop(0)
 
 
@@ -100,11 +101,13 @@ def play_action_card(
     if card_in_hand is None:
         return False
 
-    if action_card == ActionCard.GINGER:
+    # Passive cards cannot be actively played
+    if action_card in (ActionCard.GINGER, ActionCard.WASABI, ActionCard.SHOYU):
         return False
 
     if action_card == ActionCard.MATCHA:
         player.hand.remove(card_in_hand)
+        state.trash.append(card_in_hand)
         player.matcha_count += 1
         player.max_hand_size += 1
         new_card = draw_from_deck(state)
@@ -118,7 +121,7 @@ def play_action_card(
         opponents = state.get_opponent_indices(player_idx)
         if opponents:
             victim = random.choice(opponents)
-            if state.players[victim].hand:
+            if not state.players[victim].check_protected and state.players[victim].hand:
                 stolen_card = random.choice(state.players[victim].hand)
                 state.players[victim].hand.remove(stolen_card)
                 player.hand.append(stolen_card)
@@ -130,14 +133,18 @@ def play_action_card(
         opponents = state.get_opponent_indices(player_idx)
         if opponents:
             victim = random.choice(opponents)
-            if state.players[victim].hand:
+            if not state.players[victim].check_protected and state.players[victim].hand:
                 stolen_card = random.choice(state.players[victim].hand)
                 state.players[victim].hand.remove(stolen_card)
                 player.hand.append(stolen_card)
+                if not stolen_card.is_sushi and stolen_card.action_card == ActionCard.WASABI:
+                    player.wasabi_skip_flag += 1
                 if player.hand:
                     returned_card = random.choice(player.hand)
                     player.hand.remove(returned_card)
                     state.players[victim].hand.append(returned_card)
+                    if not returned_card.is_sushi and returned_card.action_card == ActionCard.WASABI:
+                        state.players[victim].wasabi_skip_flag += 1
         return True
 
     if action_card == ActionCard.UMESHU:
@@ -146,6 +153,8 @@ def play_action_card(
         opponents = state.get_opponent_indices(player_idx)
         if opponents:
             victim = random.choice(opponents)
+            if state.players[victim].check_protected:
+                return True
             combined_hand = player.hand + state.players[victim].hand
             random.shuffle(combined_hand)
             player.hand = []
@@ -153,8 +162,12 @@ def play_action_card(
             for i, card in enumerate(combined_hand):
                 if (i % 2) == 0:
                     player.hand.append(card)
+                    if not card.is_sushi and card.action_card == ActionCard.WASABI:
+                        player.wasabi_skip_flag += 1
                 else:
                     victim_hand.append(card)
+                    if not card.is_sushi and card.action_card == ActionCard.WASABI:
+                        state.players[victim].wasabi_skip_flag += 1
             state.players[victim].hand = victim_hand
         return True
 
@@ -166,8 +179,11 @@ def play_action_card(
             new_card = draw_from_deck(state)
             if new_card:
                 drawn_cards.append(new_card)
+        state.chefs_choice_drawn_cards = drawn_cards
         for card in drawn_cards:
             player.hand.append(card)
+            if not card.is_sushi and card.action_card == ActionCard.WASABI:
+                player.wasabi_skip_flag += 1
         return True
 
     if action_card == ActionCard.FORK:
@@ -177,20 +193,12 @@ def play_action_card(
         for victim in opponents:
             if state.players[victim].check_protected:
                 continue
-            if state.players[victim].hand:
-                most_expensive = max(
-                    state.players[victim].hand,
-                    key=lambda c: c.get_value() if c.is_sushi else 0,
-                )
+            sushi_cards = [c for c in state.players[victim].hand if c.is_sushi]
+            if sushi_cards:
+                most_expensive = max(sushi_cards, key=lambda c: c.get_value())
                 state.players[victim].hand.remove(most_expensive)
                 state.trash.append(most_expensive)
         return True
-
-    if action_card == ActionCard.WASABI:
-        return False
-
-    if action_card == ActionCard.SHOYU:
-        return False
 
     return False
 
@@ -207,6 +215,10 @@ def exchange_card(
 
     hand_card = player.hand[hand_card_idx]
     belt_card = state.conveyor_belt[belt_card_idx]
+
+    # Ginger cannot be exchanged from hand
+    if not hand_card.is_sushi and hand_card.action_card == ActionCard.GINGER:
+        return False
 
     if hand_card.card_id == belt_card.card_id:
         return False
@@ -244,9 +256,13 @@ def enforce_hand_limit(state: GameState, player_idx: int):
         if sushi_cards:
             card_to_discard = random.choice(sushi_cards)
         else:
-            action_cards = [c for c in player.hand if not c.is_sushi]
-            if action_cards:
-                card_to_discard = random.choice(action_cards)
+            # Ginger cannot be discarded normally — exclude it
+            discardable = [
+                c for c in player.hand
+                if not c.is_sushi and c.action_card != ActionCard.GINGER
+            ]
+            if discardable:
+                card_to_discard = random.choice(discardable)
             else:
                 break
 
@@ -283,6 +299,7 @@ def _check_omakase_set(sushi_types: Set[SushiCard]) -> bool:
         SushiCard.CONGER_EEL,
         SushiCard.CRAB,
         SushiCard.TUNA,
+        SushiCard.SALMON,
         SushiCard.SALMON_ROE,
     }
     return required.issubset(sushi_types)

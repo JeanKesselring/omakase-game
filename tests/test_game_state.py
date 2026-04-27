@@ -138,7 +138,8 @@ def test_can_call_check_with_omakase():
         Card(2, is_sushi=True, sushi_card=SushiCard.CONGER_EEL),
         Card(3, is_sushi=True, sushi_card=SushiCard.CRAB),
         Card(4, is_sushi=True, sushi_card=SushiCard.TUNA),
-        Card(5, is_sushi=True, sushi_card=SushiCard.SALMON_ROE),
+        Card(5, is_sushi=True, sushi_card=SushiCard.SALMON),
+        Card(6, is_sushi=True, sushi_card=SushiCard.SALMON_ROE),
     ]
 
     result = can_call_check(state, 0)

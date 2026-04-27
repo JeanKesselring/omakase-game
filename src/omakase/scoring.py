@@ -1,4 +1,6 @@
-from typing import List, Set, Tuple, Dict
+from collections import Counter
+from typing import List, Tuple
+
 from .cards import Card, SushiCard, ActionCard, CARD_VALUES
 
 
@@ -7,6 +9,7 @@ OMAKASE_SET = {
     SushiCard.CONGER_EEL,
     SushiCard.CRAB,
     SushiCard.TUNA,
+    SushiCard.SALMON,
     SushiCard.SALMON_ROE,
 }
 OMAKASE_VALUE = 6000
@@ -34,6 +37,13 @@ UME_VALUE = 3500
 KIDS_SET = {SushiCard.OMELETTE, SushiCard.CUCUMBER_ROLL, SushiCard.TOFU, SushiCard.KARAAGE}
 KIDS_VALUE = 2000
 
+_ALL_SETS = [
+    (OMAKASE_SET, OMAKASE_VALUE),
+    (SAKURA_SET, SAKURA_VALUE),
+    (UME_SET, UME_VALUE),
+    (KIDS_SET, KIDS_VALUE),
+]
+
 
 def calculate_score(hand: List[Card]) -> int:
     sushi_cards = [c for c in hand if c.is_sushi]
@@ -41,11 +51,21 @@ def calculate_score(hand: List[Card]) -> int:
     shoyu_count = sum(1 for c in action_cards if c.action_card == ActionCard.SHOYU)
 
     sushi_types = [c.sushi_card for c in sushi_cards]
-    sushi_type_set = set(sushi_types)
 
-    used_in_sets, sets_score = _find_optimal_sets(sushi_type_set)
+    used_counter, sets_score = _find_optimal_sets(Counter(sushi_types))
 
-    unused_sushi = [c for c in sushi_cards if c.sushi_card not in used_in_sets]
+    # Build unused_sushi respecting how many of each type were consumed by sets.
+    # Cards of a type used in sets are excluded one-for-one; extras score standalone.
+    remaining = Counter(sushi_types)
+    for card_type, used_count in used_counter.items():
+        remaining[card_type] -= used_count
+
+    unused_sushi = []
+    for card in sushi_cards:
+        if remaining[card.sushi_card] > 0:
+            unused_sushi.append(card)
+            remaining[card.sushi_card] -= 1
+
     unused_sushi.sort(key=lambda c: CARD_VALUES.get(c.sushi_card, 0), reverse=True)
 
     standalone_score = _calculate_standalone_score(unused_sushi, shoyu_count)
@@ -53,38 +73,28 @@ def calculate_score(hand: List[Card]) -> int:
     return sets_score + standalone_score
 
 
-def _find_optimal_sets(sushi_types: Set[SushiCard]) -> Tuple[Set[SushiCard], int]:
+def _find_optimal_sets(counts: Counter) -> Tuple[Counter, int]:
+    """Return (used_counter, score) using multiset counts for correct duplicate handling."""
     best_score = 0
-    best_used = set()
+    best_used: Counter = Counter()
 
-    def _try_combination(remaining_types: Set[SushiCard], used: Set[SushiCard], score: int):
+    def _try(remaining: Counter, used: Counter, score: int):
         nonlocal best_score, best_used
 
         if score > best_score:
             best_score = score
             best_used = used.copy()
 
-        if OMAKASE_SET.issubset(remaining_types):
-            new_remaining = remaining_types - OMAKASE_SET
-            new_used = used | OMAKASE_SET
-            _try_combination(new_remaining, new_used, score + OMAKASE_VALUE)
+        for set_cards, set_value in _ALL_SETS:
+            if all(remaining[t] > 0 for t in set_cards):
+                new_remaining = remaining.copy()
+                new_used = used.copy()
+                for t in set_cards:
+                    new_remaining[t] -= 1
+                    new_used[t] += 1
+                _try(new_remaining, new_used, score + set_value)
 
-        if SAKURA_SET.issubset(remaining_types):
-            new_remaining = remaining_types - SAKURA_SET
-            new_used = used | SAKURA_SET
-            _try_combination(new_remaining, new_used, score + SAKURA_VALUE)
-
-        if UME_SET.issubset(remaining_types):
-            new_remaining = remaining_types - UME_SET
-            new_used = used | UME_SET
-            _try_combination(new_remaining, new_used, score + UME_VALUE)
-
-        if KIDS_SET.issubset(remaining_types):
-            new_remaining = remaining_types - KIDS_SET
-            new_used = used | KIDS_SET
-            _try_combination(new_remaining, new_used, score + KIDS_VALUE)
-
-    _try_combination(sushi_types, set(), 0)
+    _try(counts, Counter(), 0)
     return best_used, best_score
 
 
@@ -95,7 +105,8 @@ def _calculate_standalone_score(sushi_cards: List[Card], shoyu_count: int) -> in
     base_values = [CARD_VALUES.get(c.sushi_card, 0) for c in sushi_cards]
     total = sum(base_values)
 
-    if shoyu_count > 0 and len(sushi_cards) > 0:
+    # Each Shoyu doubles one standalone card, applied to highest-value cards first
+    if shoyu_count > 0:
         shoyu_applications = min(shoyu_count, len(sushi_cards))
         for i in range(shoyu_applications):
             total += base_values[i]

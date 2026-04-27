@@ -17,6 +17,12 @@ from .game_state import (
 from .cards import Card, SushiCard, ActionCard
 from .scoring import calculate_score
 
+# Action cards that cannot be actively played (passive effects only)
+PASSIVE_ACTION_CARDS = frozenset({ActionCard.WASABI, ActionCard.SHOYU, ActionCard.GINGER})
+
+# Belt size is always 6; used as multiplier for Phase 2 fixed action encoding
+MAX_BELT_SIZE = 6
+
 
 class OmakaseEnv(gym.Env):
     metadata = {"render_modes": ["human"]}
@@ -71,8 +77,6 @@ class OmakaseEnv(gym.Env):
         if self.state.game_over:
             return self._get_observation(), 0.0, True, False, {}
 
-        player_idx = self.state.current_player
-
         if self.state.phase == Phase.PHASE_1:
             self._handle_phase_1(action)
         elif self.state.phase == Phase.PHASE_2:
@@ -81,6 +85,10 @@ class OmakaseEnv(gym.Env):
             self._handle_phase_3(action)
         elif self.state.phase == Phase.PHASE_4:
             self._handle_phase_4(action)
+        elif self.state.phase == Phase.CHEFS_CHOICE_SELECT_CARDS:
+            self._handle_chefs_choice_select_cards(action)
+        elif self.state.phase == Phase.CHEFS_CHOICE_SELECT_POSITIONS:
+            self._handle_chefs_choice_select_positions(action)
 
         obs = self._get_observation()
         reward = 0.0
@@ -95,7 +103,7 @@ class OmakaseEnv(gym.Env):
 
     def _handle_phase_1(self, action: int):
         player = self.state.get_active_player()
-        action_cards = [c for c in player.hand if not c.is_sushi]
+        action_cards = [c for c in player.hand if not c.is_sushi and c.action_card not in PASSIVE_ACTION_CARDS]
 
         if action == 0:
             self.state.phase = Phase.PHASE_2
@@ -103,36 +111,43 @@ class OmakaseEnv(gym.Env):
             action_idx = action - 1
             if action_idx < len(action_cards):
                 card = action_cards[action_idx]
+                was_chefs_choice = card.action_card == ActionCard.CHEFS_CHOICE
                 if play_action_card(self.state, self.state.current_player, card.action_card):
                     self.state.action_played_this_turn = True
-                    self.state.phase = Phase.PHASE_2
+                    if was_chefs_choice:
+                        self.state.phase = Phase.CHEFS_CHOICE_SELECT_CARDS
+                        self.state.chefs_choice_selected_cards = []
+                        self.state.chefs_choice_selected_positions = []
+                        self.state.chefs_choice_return_phase = Phase.PHASE_2
+                    else:
+                        self.state.phase = Phase.PHASE_2
 
     def _handle_phase_2(self, action: int):
+        """Phase 2: exchange a hand card with a belt card.
+
+        Action encoding: action = h_idx * MAX_BELT_SIZE + b_idx (fixed position mapping).
+        """
+        belt_size = len(self.state.conveyor_belt)
+        if belt_size == 0:
+            self.state.phase = Phase.PHASE_3
+            return
+
+        h_idx = action // MAX_BELT_SIZE
+        b_idx = action % MAX_BELT_SIZE
+
         player = self.state.get_active_player()
 
-        valid_exchanges = []
-        for h_idx in range(len(player.hand)):
-            for b_idx in range(len(self.state.conveyor_belt)):
-                hand_card = player.hand[h_idx]
-                belt_card = self.state.conveyor_belt[b_idx]
-
-                if hand_card.card_id == belt_card.card_id:
-                    continue
-
-                if hand_card.is_sushi and belt_card.is_sushi:
-                    if hand_card.sushi_card == belt_card.sushi_card:
-                        continue
-
-                if not hand_card.is_sushi and not belt_card.is_sushi:
-                    if hand_card.action_card == belt_card.action_card:
-                        continue
-
-                valid_exchanges.append((h_idx, b_idx))
-
-        if action < len(valid_exchanges):
-            hand_idx, belt_idx = valid_exchanges[action]
-            if exchange_card(self.state, self.state.current_player, hand_idx, belt_idx):
-                self.state.phase = Phase.PHASE_3
+        if exchange_card(self.state, self.state.current_player, h_idx, b_idx):
+            self.state.phase = Phase.PHASE_3
+        else:
+            # Fallback: forced exchange of first valid pair to avoid deadlock
+            for hi in range(len(player.hand)):
+                for bi in range(belt_size):
+                    if exchange_card(self.state, self.state.current_player, hi, bi):
+                        self.state.phase = Phase.PHASE_3
+                        return
+            # No valid exchange exists at all (e.g. only Ginger in hand); advance anyway
+            self.state.phase = Phase.PHASE_3
 
     def _handle_phase_3(self, action: int):
         if self.state.action_played_this_turn:
@@ -140,7 +155,7 @@ class OmakaseEnv(gym.Env):
             return
 
         player = self.state.get_active_player()
-        action_cards = [c for c in player.hand if not c.is_sushi]
+        action_cards = [c for c in player.hand if not c.is_sushi and c.action_card not in PASSIVE_ACTION_CARDS]
 
         if action == 0:
             self.state.phase = Phase.PHASE_4
@@ -148,8 +163,16 @@ class OmakaseEnv(gym.Env):
             action_idx = action - 1
             if action_idx < len(action_cards):
                 card = action_cards[action_idx]
+                was_chefs_choice = card.action_card == ActionCard.CHEFS_CHOICE
                 if play_action_card(self.state, self.state.current_player, card.action_card):
-                    self.state.phase = Phase.PHASE_4
+                    self.state.action_played_this_turn = True
+                    if was_chefs_choice:
+                        self.state.phase = Phase.CHEFS_CHOICE_SELECT_CARDS
+                        self.state.chefs_choice_selected_cards = []
+                        self.state.chefs_choice_selected_positions = []
+                        self.state.chefs_choice_return_phase = Phase.PHASE_4
+                    else:
+                        self.state.phase = Phase.PHASE_4
 
     def _handle_phase_4(self, action: int):
         player = self.state.get_active_player()
@@ -161,6 +184,37 @@ class OmakaseEnv(gym.Env):
 
         self._end_turn()
 
+    def _handle_chefs_choice_select_cards(self, action: int):
+        player = self.state.get_active_player()
+        valid_cards = list(player.hand)
+
+        if action < len(valid_cards):
+            selected_card = valid_cards[action]
+            player.hand.remove(selected_card)
+            self.state.chefs_choice_selected_cards.append(selected_card)
+
+        if len(self.state.chefs_choice_selected_cards) == 2:
+            self.state.phase = Phase.CHEFS_CHOICE_SELECT_POSITIONS
+
+    def _handle_chefs_choice_select_positions(self, action: int):
+        if action <= len(self.state.deck):
+            self.state.chefs_choice_selected_positions.append(action)
+
+        if len(self.state.chefs_choice_selected_positions) == 2:
+            cards_to_return = self.state.chefs_choice_selected_cards
+            positions = self.state.chefs_choice_selected_positions
+
+            paired = sorted(zip(positions, cards_to_return), key=lambda x: x[0], reverse=True)
+            for pos, card in paired:
+                self.state.deck.insert(pos, card)
+
+            self.state.chefs_choice_drawn_cards = []
+            self.state.chefs_choice_selected_cards = []
+            self.state.chefs_choice_selected_positions = []
+
+            # Return to the phase that triggered Chef's Choice (PHASE_2 or PHASE_4)
+            self.state.phase = self.state.chefs_choice_return_phase
+
     def _end_turn(self):
         move_conveyor(self.state)
         enforce_hand_limit(self.state, self.state.current_player)
@@ -170,6 +224,12 @@ class OmakaseEnv(gym.Env):
 
         self.turn_count += 1
         next_player_idx = (self.state.current_player + 1) % self.state.num_players
+
+        # If check was called, end the game when we would cycle back to the checker
+        if self.state.game_ending and self.state.players[next_player_idx].has_called_check:
+            self.state.game_over = True
+            return
+
         self.state.current_player = next_player_idx
         self.state.phase = Phase.PHASE_1
         self.state.action_played_this_turn = False
@@ -186,7 +246,7 @@ class OmakaseEnv(gym.Env):
 
         card = draw_from_deck(self.state)
         if card:
-            if card.action_card == ActionCard.WASABI and not card.is_sushi:
+            if not card.is_sushi and card.action_card == ActionCard.WASABI:
                 player.wasabi_skip_flag += 1
             player.hand.append(card)
 
@@ -249,7 +309,7 @@ class OmakaseEnv(gym.Env):
         print(f"\nDeck Size: {len(self.state.deck)}")
         print(f"Trash Size: {len(self.state.trash)}")
 
-        for i, opponent_idx in enumerate(self.state.get_opponent_indices(self.state.current_player)):
+        for opponent_idx in self.state.get_opponent_indices(self.state.current_player):
             opponent = self.state.players[opponent_idx]
             print(
                 f"Player {opponent_idx} Hand Size: {len(opponent.hand)} "
@@ -261,26 +321,30 @@ class OmakaseEnv(gym.Env):
 
         if self.state.phase == Phase.PHASE_1:
             actions = [0]
-            action_cards = [c for c in player.hand if not c.is_sushi]
+            action_cards = [c for c in player.hand if not c.is_sushi and c.action_card not in PASSIVE_ACTION_CARDS]
             for _ in action_cards:
                 actions.append(len(actions))
             return actions
 
         elif self.state.phase == Phase.PHASE_2:
+            # Fixed encoding: action = h_idx * MAX_BELT_SIZE + b_idx
             actions = []
             for h_idx in range(len(player.hand)):
+                hand_card = player.hand[h_idx]
+                # Ginger cannot be exchanged
+                if not hand_card.is_sushi and hand_card.action_card == ActionCard.GINGER:
+                    continue
                 for b_idx in range(len(self.state.conveyor_belt)):
-                    hand_card = player.hand[h_idx]
                     belt_card = self.state.conveyor_belt[b_idx]
-
                     if hand_card.card_id == belt_card.card_id:
                         continue
-
                     if hand_card.is_sushi and belt_card.is_sushi:
                         if hand_card.sushi_card == belt_card.sushi_card:
                             continue
-
-                    actions.append(len(actions))
+                    if not hand_card.is_sushi and not belt_card.is_sushi:
+                        if hand_card.action_card == belt_card.action_card:
+                            continue
+                    actions.append(h_idx * MAX_BELT_SIZE + b_idx)
             return actions if actions else [0]
 
         elif self.state.phase == Phase.PHASE_3:
@@ -288,7 +352,7 @@ class OmakaseEnv(gym.Env):
                 return [0]
 
             actions = [0]
-            action_cards = [c for c in player.hand if not c.is_sushi]
+            action_cards = [c for c in player.hand if not c.is_sushi and c.action_card not in PASSIVE_ACTION_CARDS]
             for _ in action_cards:
                 actions.append(len(actions))
             return actions
@@ -298,6 +362,14 @@ class OmakaseEnv(gym.Env):
             if can_call_check(self.state, self.state.current_player):
                 actions.append(1)
             return actions
+
+        elif self.state.phase == Phase.CHEFS_CHOICE_SELECT_CARDS:
+            actions = list(range(len(player.hand)))
+            return actions if actions else [0]
+
+        elif self.state.phase == Phase.CHEFS_CHOICE_SELECT_POSITIONS:
+            actions = list(range(len(self.state.deck) + 1))
+            return actions if actions else [0]
 
         return [0]
 

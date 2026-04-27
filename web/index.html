@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Omakase</title>
+  <link rel="icon" type="image/png" href="../cards/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,500..600&family=Inter+Tight:wght@400;500;600;700&family=Shippori+Mincho:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ════════════════════════════════════
+       SCREEN 1: NEW GAME
+  ════════════════════════════════════ -->
+  <div id="screen-newgame" class="screen screen--active">
+
+    <div class="newgame__bg" aria-hidden="true">
+      <div class="newgame__belt-scroll">
+        <div class="belt-silhouette"></div><div class="belt-silhouette"></div>
+        <div class="belt-silhouette"></div><div class="belt-silhouette"></div>
+        <div class="belt-silhouette"></div><div class="belt-silhouette"></div>
+        <div class="belt-silhouette"></div><div class="belt-silhouette"></div>
+        <div class="belt-silhouette"></div><div class="belt-silhouette"></div>
+        <div class="belt-silhouette"></div><div class="belt-silhouette"></div>
+      </div>
+    </div>
+
+    <div class="newgame__content">
+      <div class="newgame__logo">
+        <span class="newgame__kanji" aria-hidden="true">お任せ</span>
+        <h1 class="newgame__title">Omakase</h1>
+        <p class="newgame__subtitle">A card game of taste and strategy</p>
+      </div>
+
+      <div class="newgame__form">
+        <p class="newgame__label">Choose your opponent</p>
+        <div class="agent-grid" role="radiogroup">
+          <button class="agent-card agent-card--active" data-agent="greedy" role="radio" aria-checked="true">
+            <span class="agent-card__name">Greedy</span>
+            <span class="agent-card__desc">Set-aware, strategic swaps</span>
+            <span class="agent-card__diff diff--beginner">Beginner</span>
+          </button>
+          <button class="agent-card" data-agent="random" role="radio" aria-checked="false">
+            <span class="agent-card__name">Random</span>
+            <span class="agent-card__desc">Pure chaos, great for learning</span>
+            <span class="agent-card__diff diff--unranked">Unranked</span>
+          </button>
+          <button class="agent-card" data-agent="mcts" role="radio" aria-checked="false">
+            <span class="agent-card__name">IS-MCTS</span>
+            <span class="agent-card__desc">Monte Carlo tree search</span>
+            <span class="agent-card__diff diff--expert">Expert</span>
+          </button>
+        </div>
+
+        <div id="mcts-options" class="mcts-options" style="display:none">
+          <label class="newgame__label" for="mcts-sims">Simulations per move</label>
+          <div class="slider-row">
+            <input type="range" id="mcts-sims" min="20" max="300" value="100" step="10">
+            <span id="mcts-sims-val" class="slider-val">100</span>
+          </div>
+        </div>
+
+        <button id="btn-start" class="btn btn--primary btn--lg">
+          Begin Service <span aria-hidden="true">→</span>
+        </button>
+
+        <button id="btn-rules-toggle" class="btn btn--ghost btn--sm rules-toggle">
+          Rules &amp; Sets ▾
+        </button>
+        <div id="rules-panel" class="rules-panel" hidden>
+          <div class="rules-sets">
+            <div class="rules-set"><strong>Omakase Set — ¥6,000</strong><br>Fatty Tuna · Conger Eel · Crab · Tuna · Salmon · Salmon Roe</div>
+            <div class="rules-set"><strong>Sakura Set — ¥4,500</strong><br>Conger Eel · Crab · Tuna · Shrimp · Tuna Roll · Salmon Roll</div>
+            <div class="rules-set"><strong>Ume Set — ¥3,500</strong><br>Salmon Roe · Salmon · Shrimp · Tuna Roll · Salmon Roll · Omelette</div>
+            <div class="rules-set"><strong>Kids Set — ¥2,000</strong><br>Omelette · Cucumber Roll · Tofu · Karaage</div>
+          </div>
+          <p class="rules-note">Each turn: (1) optionally play an action card, (2) swap a hand card with the belt, (3) optionally play an action card, (4) optionally call Check. Call Check when you have a complete set to end the game.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       SCREEN 2: GAME TABLE
+  ════════════════════════════════════ -->
+  <div id="screen-game" class="screen">
+
+    <header class="topbar">
+      <span class="topbar__logo" aria-label="Omakase">お任せ</span>
+      <div class="topbar__center">
+        <span class="topbar__label">Turn</span>
+        <span id="turn-number" class="topbar__turn">1</span>
+      </div>
+      <div class="topbar__right">
+        <button id="btn-menu" class="btn btn--ghost btn--sm" aria-label="Menu">☰</button>
+      </div>
+    </header>
+
+    <!-- Opponent row -->
+    <section class="opp-zone" aria-label="Opponent">
+      <div class="opp-zone__info">
+        <span class="player-label player-label--ai" id="opp-label">AI</span>
+        <span class="hand-count" id="opp-hand-count">0 cards</span>
+      </div>
+      <div class="opp-hand" id="opp-hand" aria-label="Opponent's face-down cards"></div>
+    </section>
+
+    <!-- Conveyor belt with deck and trash -->
+    <section class="belt-section" aria-label="Conveyor belt">
+
+      <!-- Deck pile (left) -->
+      <div class="pile-zone pile-zone--deck">
+        <div class="pile-stack" id="deck-pile">
+          <img src="../cards/cards_back.png" class="pile-card-img" alt="Deck" id="deck-pile-img">
+        </div>
+        <div class="pile-info">
+          <span class="pile-label">Deck</span>
+          <span class="pile-count" id="deck-count">62</span>
+        </div>
+      </div>
+
+      <!-- Belt track (center) -->
+      <div class="belt-center">
+        <div class="belt-track">
+          <div class="belt-rail belt-rail--top" aria-hidden="true"></div>
+          <div class="belt-slots" id="belt-slots" role="list"></div>
+          <div class="belt-rail belt-rail--bottom" aria-hidden="true"></div>
+        </div>
+        <div class="belt-labels" aria-hidden="true">
+          <span class="belt-label-new">← New</span>
+          <span class="belt-label-old">Old →</span>
+        </div>
+      </div>
+
+      <!-- Trash pile (right) -->
+      <div class="pile-zone pile-zone--trash">
+        <div class="pile-stack pile-stack--trash" id="trash-pile"
+             role="button" tabindex="0" aria-label="View discard pile">
+          <div class="pile-empty" id="trash-empty">Empty</div>
+        </div>
+        <div class="pile-info">
+          <span class="pile-label">Discard</span>
+          <span class="pile-count" id="trash-count">0</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Phase bar -->
+    <div class="phase-bar" role="status" aria-live="polite">
+      <div class="phase-pips" aria-label="Current phase">
+        <div class="phase-step">
+          <span class="phase-pip" data-phase="0">1</span>
+          <span class="phase-step__label">Action</span>
+        </div>
+        <span class="phase-sep" aria-hidden="true">›</span>
+        <div class="phase-step">
+          <span class="phase-pip" data-phase="1">2</span>
+          <span class="phase-step__label">Swap</span>
+        </div>
+        <span class="phase-sep" aria-hidden="true">›</span>
+        <div class="phase-step">
+          <span class="phase-pip" data-phase="2">3</span>
+          <span class="phase-step__label">Action</span>
+        </div>
+        <span class="phase-sep" aria-hidden="true">›</span>
+        <div class="phase-step">
+          <span class="phase-pip" data-phase="3">4</span>
+          <span class="phase-step__label">Check</span>
+        </div>
+      </div>
+      <p class="phase-msg" id="phase-msg">Waiting...</p>
+    </div>
+
+    <!-- Player hand -->
+    <section class="player-zone" aria-label="Your hand">
+      <div class="player-zone__header">
+        <span class="player-label" id="player-label">You</span>
+        <div class="score-box score-box--player" aria-label="Your score">
+          <span class="score-box__label">Score</span>
+          <span class="score-box__value" id="player-score">¥0</span>
+        </div>
+      </div>
+      <div class="passive-effects" id="passive-effects" aria-label="Active effects"></div>
+      <div class="player-hand" id="player-hand" role="list" aria-label="Your cards"></div>
+    </section>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button id="btn-pass" class="btn btn--secondary">Skip Action</button>
+      <button id="btn-check" class="btn btn--danger" disabled>Call Check</button>
+    </div>
+
+    <!-- Thinking overlay -->
+    <div id="thinking-overlay" class="thinking-overlay" hidden aria-live="polite">
+      <div class="thinking-overlay__box">
+        <p class="thinking-overlay__text" id="thinking-text">Chef is thinking...</p>
+        <div class="thinking-dots" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chef's Choice modal (card selection) -->
+    <div id="chefs-modal-bg" class="modal-bg" hidden>
+      <div id="chefs-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="chefs-modal-title">
+        <h2 id="chefs-modal-title" class="modal__title">Chef's Choice</h2>
+        <p id="chefs-modal-instr" class="modal__instr">Select 2 cards to return to the deck</p>
+        <div id="chefs-modal-cards" class="modal__cards"></div>
+        <div class="modal__footer">
+          <span id="chefs-select-count" class="modal__count">0 / 2 selected</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chef's Choice modal (position selection) -->
+    <div id="chefs-pos-modal-bg" class="modal-bg" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="chefs-pos-modal-title">
+        <h2 id="chefs-pos-modal-title" class="modal__title">Place Cards in Deck</h2>
+        <p id="chefs-pos-modal-instr" class="modal__instr">Choose where each card goes in the deck</p>
+        <div id="chefs-pos-modal-body" class="chefs-pos-body"></div>
+        <div class="modal__footer">
+          <button id="btn-chefs-pos-confirm" class="btn btn--primary">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pick opponent card modal -->
+    <div id="pick-opp-modal-bg" class="modal-bg" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pick-opp-modal-title">
+        <h2 id="pick-opp-modal-title" class="modal__title">Pick a Card</h2>
+        <p id="pick-opp-modal-instr" class="modal__instr">Select a card from opponent's hand</p>
+        <div id="pick-opp-modal-cards" class="modal__cards"></div>
+      </div>
+    </div>
+
+    <!-- Sake return modal -->
+    <div id="sake-return-modal-bg" class="modal-bg" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sake-return-modal-title">
+        <h2 id="sake-return-modal-title" class="modal__title">Give a Card</h2>
+        <p class="modal__instr">Choose a card from your hand to give to your opponent</p>
+        <div id="sake-return-modal-cards" class="modal__cards"></div>
+      </div>
+    </div>
+
+    <!-- Discard modal (over hand limit) -->
+    <div id="discard-modal-bg" class="modal-bg" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="discard-modal-title">
+        <h2 id="discard-modal-title" class="modal__title">Discard a Card</h2>
+        <p id="discard-modal-instr" class="modal__instr">Your hand is over the limit. Select a card to discard.</p>
+        <div id="discard-modal-cards" class="modal__cards"></div>
+      </div>
+    </div>
+
+    <!-- Trash viewer modal -->
+    <div id="trash-modal-bg" class="modal-bg" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="trash-modal-title">
+        <h2 id="trash-modal-title" class="modal__title">Discard Pile</h2>
+        <p id="trash-modal-count" class="modal__instr">0 cards</p>
+        <div id="trash-modal-cards" class="modal__cards modal__cards--scroll"></div>
+        <div class="modal__footer">
+          <button id="btn-close-trash-modal" class="btn btn--secondary btn--sm">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game menu drawer -->
+    <div id="menu-bg" class="drawer-bg" hidden>
+      <div class="drawer" role="dialog" aria-modal="true">
+        <button id="btn-close-menu" class="drawer__close" aria-label="Close">✕</button>
+        <div class="drawer__body">
+          <button id="btn-new-game-menu" class="btn btn--ghost">New Game</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /screen-game -->
+
+  <!-- ════════════════════════════════════
+       SCREEN 3: GAME OVER
+  ════════════════════════════════════ -->
+  <div id="screen-gameover" class="screen">
+    <div class="gameover">
+      <div class="gameover__verdict" id="gameover-verdict">OMAKASE!</div>
+      <div class="gameover__scores">
+        <div class="gameover__player-card" id="go-player-card">
+          <span class="gameover__who">You</span>
+          <span class="gameover__pts" id="go-player-score">¥0</span>
+          <div class="gameover__mini-hand" id="go-player-hand"></div>
+        </div>
+        <span class="gameover__vs">vs</span>
+        <div class="gameover__player-card" id="go-opp-card">
+          <span class="gameover__who" id="go-opp-label">AI</span>
+          <span class="gameover__pts" id="go-opp-score">¥0</span>
+          <div class="gameover__mini-hand" id="go-opp-hand"></div>
+        </div>
+      </div>
+      <div class="gameover__breakdown" id="go-breakdown"></div>
+      <div class="gameover__actions">
+        <button id="btn-rematch" class="btn btn--primary btn--lg">Rematch</button>
+        <button id="btn-change-opp" class="btn btn--secondary">Change Opponent</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container" role="status" aria-live="polite"></div>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>
