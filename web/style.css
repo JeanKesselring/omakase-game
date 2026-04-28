@@ -534,6 +534,10 @@ body {
   background: var(--paper); padding: 8px 16px;
   border-top: 1px solid var(--rule);
 }
+/* Score in controls: sits left of buttons on desktop */
+.controls .score-box { gap: 6px; }
+.controls .score-box__label { font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+.controls .score-box__value { font-size: 18px; }
 
 /* ══ Card component — image only, full 5:7 face ═══════════════════════════ */
 .card {
@@ -901,53 +905,86 @@ body {
 }
 
 /* ══ Mobile portrait (≤600px) ═════════════════════════════════════════════
-   Layout: topbar | belt (1fr) | footer[hand · buttons]
-   Phase bar removed — matches game_ui.png reference
+   Layout: opp-hand row | belt (1fr) | [hand · score+buttons]
+   Topbar becomes floating burger. Phase bar removed.
    ══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 600px) {
   :root {
-    --card-w: 68px;
-    --card-h: 95px;
-    --pile-w: 44px;
-    --pile-h: 62px;
+    --card-w: 100px;
+    --card-h: 140px;
+    --pile-w: 36px;
+    --pile-h: 50px;
   }
 
-  /* 3-row / 2-column: topbar | belt | [hand · buttons] */
+  /* 3-row / 2-col: [opp-hand] | [belt] | [hand · buttons] */
   #screen-game {
-    grid-template-rows: 40px 1fr auto;
+    grid-template-rows: 50px 1fr auto;
     grid-template-columns: 1fr auto;
   }
 
-  /* Topbar: show turn counter + burger */
-  .topbar { grid-row: 1; grid-column: 1 / -1; height: 40px; padding: 0 12px; justify-content: space-between; }
-  .topbar__logo { display: none; }
-  .topbar__center { display: flex; }
-  .game-ending-banner { top: 40px; }
+  /* Topbar → floating burger only, taken out of grid */
+  .topbar {
+    position: fixed;
+    top: 8px; right: 10px;
+    background: transparent; border: none; padding: 0;
+    z-index: var(--z-overlay);
+  }
+  .topbar__logo   { display: none; }
+  .topbar__center { display: none; }
+  #btn-menu {
+    background: rgba(27,30,46,0.65);
+    color: var(--cream);
+    border-radius: 6px;
+    width: 34px; height: 34px;
+    padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  }
+  .game-ending-banner { top: 0; }
 
-  /* Hide opponent zone and phase bar */
-  .opp-zone  { display: none; }
+  /* Row 1: Opponent card backs, centered, dark belt bg */
+  .opp-zone {
+    grid-row: 1; grid-column: 1 / -1;
+    display: flex; justify-content: center; align-items: center;
+    padding: 5px 0;
+    background: var(--belt-bg);
+    border-bottom: 1px solid rgba(200,169,110,.10);
+    min-height: 0;
+  }
+  .opp-zone__info { display: none; }
+  #opp-hand .card-back { width: 28px; height: 39px; }
+
+  /* Phase bar: removed */
   .phase-bar { display: none; }
 
-  /* Belt: row 2, full width, dark belt dominates */
-  .belt-section { grid-row: 2; grid-column: 1 / -1; padding: 10px; gap: 8px; align-items: center; }
-  .belt-center  { flex: 1; min-width: 0; overflow: hidden; }
-  .belt-track   { padding: 8px 10px; }
-  .belt-slots   { justify-content: flex-start; gap: 6px; }
-  .belt-labels  { display: none; }
+  /* Row 2: Belt — dark and dominant */
+  .belt-section {
+    grid-row: 2; grid-column: 1 / -1;
+    padding: 10px;
+    gap: 8px;
+    align-items: center;
+  }
+  .belt-center { flex: 1; min-width: 0; overflow: hidden; }
+  .belt-track  { padding: 8px 10px; }
+  .belt-slots  { justify-content: center; gap: 8px; }
+  .belt-labels { display: none; }
 
-  /* Row 3 col 1: Player hand */
+  /* Row 3 col 1: Player hand — bigger cards, no header */
   .player-zone {
     grid-row: 3; grid-column: 1;
-    padding: 6px 0 4px;
+    padding: 8px 0;
     border-top: 1px solid var(--rule);
     overflow: hidden;
   }
-  .player-zone__header { padding: 2px 10px; margin-bottom: 2px; }
-  .passive-effects     { padding: 0 10px; }
-  .player-hand { justify-content: flex-start; padding: 4px 10px 6px; gap: 6px; }
-  .player-hand .card   { width: calc(var(--card-w) * 1.1); height: calc(var(--card-h) * 1.1); }
+  .player-zone__header { display: none; }
+  .passive-effects     { display: none; }
+  .player-hand { justify-content: center; padding: 4px 10px 8px; gap: 8px; }
+  .player-hand .card   { width: 115px; height: 161px; }
 
-  /* Row 3 col 2: Action buttons */
+  /* Row 3 col 2: Score + action buttons */
   .controls {
     grid-row: 3; grid-column: 2;
     flex-direction: column; height: auto;
@@ -956,6 +993,13 @@ body {
     border-left: 1px solid var(--rule);
     justify-content: center; align-items: stretch;
   }
+  .controls .score-box {
+    flex-direction: column; align-items: center;
+    gap: 1px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .controls .score-box__label { font-size: 9px; }
+  .controls .score-box__value { font-size: 22px; }
   .controls .btn { padding: 8px 14px; font-size: 12px; }
 
   #toast-container { bottom: 8px; }
@@ -967,7 +1011,7 @@ body {
 }
 
 /* ══ Landscape phones (height ≤ 500px) ══════════════════════════════════════
-   Same 2-column footer, more compact sizing
+   Same structure, compact sizing
    ══════════════════════════════════════════════════════════════════════════ */
 @media (max-height: 500px) {
   :root {
@@ -978,44 +1022,45 @@ body {
   }
 
   #screen-game {
-    grid-template-rows: 28px 1fr auto;
+    grid-template-rows: 36px 1fr auto;
     grid-template-columns: 1fr auto;
   }
 
-  .topbar { grid-row: 1; grid-column: 1 / -1; height: 28px; padding: 0 10px; justify-content: space-between; }
-  .topbar__logo  { display: none; }
-  .topbar__center { display: flex; }
-  .game-ending-banner { top: 28px; }
+  .topbar { position: fixed; top: 4px; right: 8px; background: transparent; border: none; padding: 0; z-index: var(--z-overlay); }
+  .topbar__logo   { display: none; }
+  .topbar__center { display: none; }
+  #btn-menu {
+    background: rgba(27,30,46,0.65); color: var(--cream); border-radius: 6px;
+    width: 28px; height: 28px; padding: 0; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  }
+  .game-ending-banner { top: 0; }
 
-  .opp-zone  { display: none; }
+  .opp-zone { grid-row: 1; grid-column: 1 / -1; display: flex; justify-content: center; align-items: center; padding: 3px 0; background: var(--belt-bg); min-height: 0; border-bottom: 1px solid rgba(200,169,110,.08); }
+  .opp-zone__info { display: none; }
+  #opp-hand .card-back { width: 20px; height: 28px; }
+
   .phase-bar { display: none; }
 
   .belt-section { grid-row: 2; grid-column: 1 / -1; padding: 6px 8px; gap: 6px; align-items: center; }
   .belt-center  { flex: 1; min-width: 0; overflow: hidden; }
   .belt-track   { padding: 5px 8px; }
   .belt-rail    { margin: 0; }
-  .belt-slots   { justify-content: flex-start; gap: 4px; }
+  .belt-slots   { justify-content: center; gap: 4px; }
   .belt-labels  { display: none; }
 
-  .player-zone {
-    grid-row: 3; grid-column: 1;
-    padding: 3px 0 2px;
-    border-top: 1px solid var(--rule);
-    overflow: hidden;
-  }
-  .player-zone__header { padding: 1px 8px; margin-bottom: 1px; font-size: 11px; }
-  .passive-effects     { padding: 0 8px; }
-  .player-hand { justify-content: flex-start; padding: 3px 8px 4px; gap: 4px; }
-  .player-hand .card   { width: calc(var(--card-w) * 1.1); height: calc(var(--card-h) * 1.1); }
+  .player-zone { grid-row: 3; grid-column: 1; padding: 4px 0; border-top: 1px solid var(--rule); overflow: hidden; }
+  .player-zone__header { display: none; }
+  .passive-effects     { display: none; }
+  .player-hand { justify-content: center; padding: 3px 8px 4px; gap: 4px; }
+  .player-hand .card   { width: calc(var(--card-w) * 1.2); height: calc(var(--card-h) * 1.2); }
 
-  .controls {
-    grid-row: 3; grid-column: 2;
-    flex-direction: column; height: auto;
-    padding: 4px 8px; gap: 4px;
-    border-top: 1px solid var(--rule);
-    border-left: 1px solid var(--rule);
-    justify-content: center; align-items: stretch;
-  }
+  .controls { grid-row: 3; grid-column: 2; flex-direction: column; height: auto; padding: 4px 8px; gap: 4px; border-top: 1px solid var(--rule); border-left: 1px solid var(--rule); justify-content: center; align-items: stretch; }
+  .controls .score-box { flex-direction: column; align-items: center; gap: 0; padding-bottom: 4px; border-bottom: 1px solid var(--rule); }
+  .controls .score-box__label { font-size: 8px; }
+  .controls .score-box__value { font-size: 14px; }
   .controls .btn { padding: 4px 10px; font-size: 10px; }
 
   #toast-container { bottom: 6px; }

@@ -262,10 +262,6 @@
     <section class="player-zone" aria-label="Your hand">
       <div class="player-zone__header">
         <span class="player-label" id="player-label">You</span>
-        <div class="score-box score-box--player" aria-label="Your score">
-          <span class="score-box__label">Score</span>
-          <span class="score-box__value" id="player-score">¥0</span>
-        </div>
       </div>
       <div class="passive-effects" id="passive-effects" aria-label="Active effects"></div>
       <div class="player-hand" id="player-hand" role="list" aria-label="Your cards"></div>
@@ -273,6 +269,10 @@
 
     <!-- Controls -->
     <div class="controls">
+      <div class="score-box score-box--player" aria-label="Your score">
+        <span class="score-box__label">Score</span>
+        <span class="score-box__value" id="player-score">¥0</span>
+      </div>
       <button id="btn-pass" class="btn btn--secondary">Skip Action</button>
       <button id="btn-check" class="btn btn--danger" disabled>Call Check</button>
     </div>
