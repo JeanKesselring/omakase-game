@@ -53,13 +53,18 @@
             <span class="agent-card__desc">Monte Carlo tree search</span>
             <span class="agent-card__diff diff--expert">Expert</span>
           </button>
+          <button class="agent-card" data-agent="mcts2" role="radio" aria-checked="false">
+            <span class="agent-card__name">IS-MCTS+</span>
+            <span class="agent-card__desc">Improved value estimation</span>
+            <span class="agent-card__diff diff--expert">Expert+</span>
+          </button>
         </div>
 
         <div id="mcts-options" class="mcts-options" style="display:none">
           <label class="newgame__label" for="mcts-sims">Simulations per move</label>
           <div class="slider-row">
-            <input type="range" id="mcts-sims" min="20" max="300" value="100" step="10">
-            <span id="mcts-sims-val" class="slider-val">100</span>
+            <input type="range" id="mcts-sims" min="100" max="2000" value="500" step="100">
+            <span id="mcts-sims-val" class="slider-val">500</span>
           </div>
         </div>
 
@@ -273,6 +278,26 @@
         <button id="btn-close-menu" class="drawer__close" aria-label="Close">✕</button>
         <div class="drawer__body">
           <button id="btn-new-game-menu" class="btn btn--ghost">New Game</button>
+          <hr class="drawer__divider">
+          <div class="drawer__sets">
+            <p class="drawer__sets-title">Sets</p>
+            <div class="drawer__set">
+              <strong>Omakase — ¥6,000</strong>
+              <span>Fatty Tuna · Conger Eel · Crab · Tuna · Salmon · Salmon Roe</span>
+            </div>
+            <div class="drawer__set">
+              <strong>Sakura — ¥4,500</strong>
+              <span>Conger Eel · Crab · Tuna · Shrimp · Tuna Roll · Salmon Roll</span>
+            </div>
+            <div class="drawer__set">
+              <strong>Ume — ¥3,500</strong>
+              <span>Salmon Roe · Salmon · Shrimp · Tuna Roll · Salmon Roll · Omelette</span>
+            </div>
+            <div class="drawer__set">
+              <strong>Kids — ¥2,000</strong>
+              <span>Omelette · Cucumber Roll · Tofu · Karaage</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

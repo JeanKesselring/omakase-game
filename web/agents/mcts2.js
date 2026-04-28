@@ -1,8 +1,17 @@
+// IS-MCTS v2 — improved over mcts.js with four changes:
+//
+//  1. Sigmoid reward  : sigmoid(myScore − maxOppScore, K=600) instead of linear score-ratio
+//  2. Value estimation: set-completion probability for rolloutDepth truncation (default depth=10)
+//  3. Phase 4 priors  : state-dependent check-call prior instead of uniform 50/50
+//  4. Aggressive check: rollout agent calls check at any positive lead (vs +300 in the greedy default)
+
 import { OmakaseEnv, MAX_BELT_SIZE } from '../engine/env.js';
 import { Phase } from '../engine/gameState.js';
-import { calculateScore } from '../engine/scoring.js';
+import { calculateScore, hasValidSet } from '../engine/scoring.js';
 import { createDeck, PASSIVE_ACTION_CARDS } from '../engine/cards.js';
-import { bestSwap, scoreActionCard, chooseActionCard, SimpleGreedyAgent } from './greedy.js';
+import { bestSwap, scoreActionCard, SimpleGreedyAgent } from './greedy.js';
+
+const REWARD_K = 600; // sigmoid temperature — 1 Kids-Set lead (2000 pts) → reward ≈ 0.96
 
 const SETS_WITH_VALUES = [
   [new Set(["fatty_tuna","conger_eel","crab","tuna","salmon","salmon_roe"]), 6000],
@@ -11,11 +20,13 @@ const SETS_WITH_VALUES = [
   [new Set(["omelette","cucumber_roll","tofu","karaage"]), 2000],
 ];
 
+function sigmoid(x) { return 1 / (1 + Math.exp(-x / REWARD_K)); }
+
 class MCTSNode {
   constructor(action, parent, prior = 1.0) {
     this.action = action;
     this.parent = parent;
-    this.children = new Map(); // action → MCTSNode
+    this.children = new Map();
     this.visits = 0;
     this.totalReward = 0.0;
     this.prior = prior;
@@ -30,17 +41,25 @@ class MCTSNode {
   }
 }
 
-export class ISMCTSAgent {
-  constructor({ nSimulations = 500, timeBudgetMs = 0, c = 1.5, rolloutDepth = 0 } = {}) {
+export class ISMCTSAgentV2 {
+  constructor({ nSimulations = 500, timeBudgetMs = 0, c = 1.5, rolloutDepth = 10 } = {}) {
     this.nSimulations = nSimulations;
-    this.timeBudgetMs = timeBudgetMs; // when > 0, run until deadline instead of fixed count
+    this.timeBudgetMs = timeBudgetMs;
     this.c = c;
     this.rolloutDepth = rolloutDepth;
-    this._rolloutAgent = new SimpleGreedyAgent();
+    // Rollout agent calls check at any lead (threshold=0) so games end at natural win points
+    this._rolloutAgent = new SimpleGreedyAgent({ checkThreshold: 0 });
     this._root = null;
     this._lastAction = null;
     this._allCards = createDeck();
     this._playerIdx = 0;
+
+    // Precompute card-type frequencies once (used by _valueEstimate per simulation)
+    this._typeFrequencies = new Map();
+    for (const c of this._allCards) {
+      const type = c.isSushi ? c.sushiCard : c.actionCard;
+      this._typeFrequencies.set(type, (this._typeFrequencies.get(type) ?? 0) + 1);
+    }
   }
 
   chooseAction(env, legalActions) {
@@ -114,12 +133,10 @@ export class ISMCTSAgent {
       ...state.chefChoiceDrawnCards.map(c => c.cardId),
     ]);
     const pool = this._allCards.filter(c => !known.has(c.cardId));
-    // Shuffle pool
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-
     const det = env.copy();
     let idx = 0;
     for (let p = 0; p < state.numPlayers; p++) {
@@ -135,9 +152,7 @@ export class ISMCTSAgent {
   _simulate(root, env) {
     let node = root;
 
-    // Selection + Expansion
     while (!env.state.gameOver) {
-      // Advance opponent turns without branching into tree
       while (!env.state.gameOver && env.state.currentPlayer !== this._playerIdx) {
         const legal = env.getLegalActions();
         env.step(this._rolloutAgent.chooseAction(env, legal));
@@ -148,7 +163,6 @@ export class ISMCTSAgent {
       const untried = legal.filter(a => !node.children.has(a));
 
       if (untried.length > 0) {
-        // Biased expansion: pick highest-prior untried action
         const priors = this._computePriors(env, legal);
         const action = untried.reduce((best, a) => (priors[a] ?? 0) > (priors[best] ?? 0) ? a : best, untried[0]);
         const child = new MCTSNode(action, node, priors[action] ?? 1 / legal.length);
@@ -158,7 +172,6 @@ export class ISMCTSAgent {
         break;
       }
 
-      // Selection: PUCT over children that are legal in this determinization
       const valid = legal.filter(a => node.children.has(a));
       if (valid.length === 0) break;
       const action = valid.reduce((best, a) =>
@@ -167,10 +180,8 @@ export class ISMCTSAgent {
       env.step(action);
     }
 
-    // Rollout
     const reward = this._rollout(env);
 
-    // Backpropagation
     let cur = node;
     while (cur !== null) {
       cur.visits++;
@@ -190,8 +201,7 @@ export class ISMCTSAgent {
         const hIdx = Math.floor(action / MAX_BELT_SIZE);
         const bIdx = action % MAX_BELT_SIZE;
         if (hIdx >= player.hand.length || bIdx >= state.conveyorBelt.length) {
-          priors[action] = 50;
-          continue;
+          priors[action] = 50; continue;
         }
         const newHand = [...player.hand.slice(0, hIdx), state.conveyorBelt[bIdx], ...player.hand.slice(hIdx + 1)];
         const delta = calculateScore(newHand) - currentScore;
@@ -200,6 +210,22 @@ export class ISMCTSAgent {
     } else if (state.phase === Phase.PHASE_1 || state.phase === Phase.PHASE_3) {
       for (const action of legalActions) {
         priors[action] = action === 0 ? 100 : this._actionCardPrior(env, action);
+      }
+    } else if (state.phase === Phase.PHASE_4) {
+      // State-dependent check prior: high when winning with a set, low otherwise
+      const myScore = calculateScore(player.hand);
+      const maxOppScore = Math.max(
+        ...Array.from({ length: state.numPlayers }, (_, i) => i)
+          .filter(i => i !== state.currentPlayer)
+          .map(i => calculateScore(state.players[i].hand)),
+        0
+      );
+      const lead = myScore - maxOppScore;
+      priors[0] = 100; // pass baseline
+      if (legalActions.includes(1)) {
+        priors[1] = hasValidSet(player.hand) && lead > 0
+          ? Math.max(200, 100 + lead / 5)
+          : 20;
       }
     } else {
       for (const action of legalActions) priors[action] = 1;
@@ -235,37 +261,67 @@ export class ISMCTSAgent {
       env.step(this._rolloutAgent.chooseAction(env, legal));
       steps++;
     }
+    // Terminal: sigmoid of score difference
     const results = env.getGameResults();
-    const total = Object.values(results).reduce((s, v) => s + v, 0) || 1;
-    return (results[this._playerIdx] ?? 0) / total;
+    const myScore = results[this._playerIdx] ?? 0;
+    const maxOppScore = Math.max(
+      ...Object.entries(results)
+        .filter(([i]) => +i !== this._playerIdx)
+        .map(([, s]) => s),
+      0
+    );
+    return sigmoid(myScore - maxOppScore);
   }
 
+  // Set-completion probability value estimate used at rollout truncation points.
+  // Computes expected score = currentScore + sum(P(complete set S) × bonus) for each
+  // not-yet-complete set, then applies sigmoid over the score difference vs best opponent.
   _valueEstimate(env) {
-    const ourScore = calculateScore(env.state.players[this._playerIdx].hand);
-    const totalScore = env.state.players.reduce((s, p) => s + calculateScore(p.hand), 0) || 1;
-    const scoreRatio = ourScore / totalScore;
+    const { state } = env;
+    const ownHand = state.players[this._playerIdx].hand;
 
-    const totalSetValue = SETS_WITH_VALUES.reduce((s, [, v]) => s + v, 0);
-    const sushiTypes = new Set(env.state.players[this._playerIdx].hand.filter(c => c.isSushi).map(c => c.sushiCard));
-    const mySetProgress = SETS_WITH_VALUES.reduce((s, [setCards, v]) => {
-      let cnt = 0;
-      for (const t of setCards) if (sushiTypes.has(t)) cnt++;
-      return s + (cnt / setCards.size) * v;
-    }, 0) / totalSetValue;
-
-    let oppSetProgress = 0;
-    for (let p = 0; p < env.state.numPlayers; p++) {
-      if (p === this._playerIdx) continue;
-      const oppSushi = new Set(env.state.players[p].hand.filter(c => c.isSushi).map(c => c.sushiCard));
-      const opp = SETS_WITH_VALUES.reduce((s, [setCards, v]) => {
-        let cnt = 0;
-        for (const t of setCards) if (oppSushi.has(t)) cnt++;
-        return s + (cnt / setCards.size) * v;
-      }, 0) / totalSetValue;
-      oppSetProgress = Math.max(oppSetProgress, opp);
+    // Visible cards (used to compute how many of each type are still in the unknown pool)
+    const seenCounts = new Map();
+    for (const c of [...ownHand, ...state.conveyorBelt, ...state.trash, ...state.chefChoiceDrawnCards]) {
+      if (c.isSushi) seenCounts.set(c.sushiCard, (seenCounts.get(c.sushiCard) ?? 0) + 1);
     }
 
-    const netSet = (mySetProgress - oppSetProgress + 1) / 2;
-    return 0.6 * scoreRatio + 0.4 * netSet;
+    // Unknown pool size = deck + all opponent hands
+    let poolSize = state.deck.length;
+    for (let p = 0; p < state.numPlayers; p++) {
+      if (p !== this._playerIdx) poolSize += state.players[p].hand.length;
+    }
+    // Conservative estimate of remaining draws for this player
+    const turnsLeft = poolSize > 0 ? Math.ceil(state.deck.length / state.numPlayers) : 0;
+
+    const ownSushiTypes = new Set(ownHand.filter(c => c.isSushi).map(c => c.sushiCard));
+    let expectedScore = calculateScore(ownHand);
+
+    for (const [setCards, setBonus] of SETS_WITH_VALUES) {
+      const needed = [...setCards].filter(t => !ownSushiTypes.has(t));
+      if (needed.length === 0 || turnsLeft === 0 || poolSize === 0) continue;
+
+      // P(complete set) = product over needed types of P(draw ≥1 of that type in turnsLeft draws)
+      // With-replacement approximation: slightly underestimates (conservative bias)
+      let pComplete = 1;
+      for (const t of needed) {
+        const total  = this._typeFrequencies.get(t) ?? 0;
+        const hidden = Math.max(0, total - (seenCounts.get(t) ?? 0));
+        if (hidden === 0) { pComplete = 0; break; }
+        pComplete *= (1 - Math.pow((poolSize - hidden) / poolSize, turnsLeft));
+      }
+      expectedScore += pComplete * setBonus;
+    }
+
+    // Opponent score: use current score only (conservative — don't model their improvement)
+    let maxOppExpected = 0;
+    for (let p = 0; p < state.numPlayers; p++) {
+      if (p !== this._playerIdx) {
+        const s = calculateScore(state.players[p].hand);
+        if (s > maxOppExpected) maxOppExpected = s;
+      }
+    }
+
+    return sigmoid(expectedScore - maxOppExpected);
   }
 }

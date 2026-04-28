@@ -4,6 +4,10 @@ import { calculateScore, hasValidSet } from '../engine/scoring.js';
 import { PASSIVE_ACTION_CARDS, CARD_VALUES, ActionCard } from '../engine/cards.js';
 
 export class SimpleGreedyAgent {
+  constructor({ checkThreshold = 300 } = {}) {
+    this._checkThreshold = checkThreshold;
+  }
+
   chooseAction(env, legalActions) {
     const { phase } = env.state;
     if (phase === Phase.PHASE_2)                       return this._phase2(env, legalActions);
@@ -42,7 +46,7 @@ export class SimpleGreedyAgent {
     const oppScores = Array.from({ length: env.state.numPlayers }, (_, i) => i)
       .filter(i => i !== env.state.currentPlayer)
       .map(i => calculateScore(env.state.players[i].hand));
-    if (oppScores.length > 0 && myScore > Math.max(...oppScores) + 300 && player.hand.length >= 5) {
+    if (oppScores.length > 0 && myScore > Math.max(...oppScores) + this._checkThreshold && player.hand.length >= 5) {
       return 1;
     }
     return 0;

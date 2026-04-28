@@ -26,7 +26,7 @@ const ACTION_EFFECTS = {
 // ── Game state ────────────────────────────────────────────────────────────────
 let env = null;
 let selectedAgent = 'greedy';
-let mctsSimulations = 100;
+let mctsNSims = 500;
 let agent = null;
 let mctsWorker = null;
 let aiThinking = false;
@@ -328,9 +328,9 @@ const PHASE_MSGS = [
 ];
 
 const PASS_BTN_LABELS = {
-  [Phase.PHASE_1]: 'Skip Action',
+  [Phase.PHASE_1]: 'No Action',
   [Phase.PHASE_2]: 'Skip Swap',
-  [Phase.PHASE_3]: 'Skip Action',
+  [Phase.PHASE_3]: 'No Action',
   [Phase.PHASE_4]: 'End Turn',
 };
 
@@ -489,7 +489,12 @@ async function onActionCardClick(card, player) {
       "Choose a card to take from opponent (face-down)",
       oppPlayer.hand.length
     );
-    const returnIdx = await showSakeReturnModal(state.players[PLAYER_IDX].hand);
+    // Exclude the sake card itself — engine removes it before looking up returnCardIdx,
+    // so the filtered indices map 1:1 to the post-removal hand.
+    const handForReturn = state.players[PLAYER_IDX].hand.filter(
+      c => !(!c.isSushi && c.actionCard === 'sake')
+    );
+    const returnIdx = await showSakeReturnModal(handForReturn);
     if (victimIdx !== null && returnIdx !== null) {
       env._nextActionChoices = { victimCardIdx: victimIdx, returnCardIdx: returnIdx };
     }
@@ -823,6 +828,25 @@ function postRenderCheck() {
       postRenderCheck();
       scheduleTurn();
     }, 900);
+    return;
+  }
+
+  if (phase === Phase.PHASE_4 && legal.length === 1 && legal[0] === 0) {
+    setTimeout(() => {
+      if (!env || env.state.gameOver || env.state.currentPlayer !== PLAYER_IDX) return;
+      const prevBelt = capturePreStepBelt();
+      env.step(0);
+      checkAndSetBeltAnim(prevBelt);
+      if (env.state.gameOver) { endGame(); return; }
+      render();
+      if (beltDealIn) {
+        animateBeltDeal().then(() => { postRenderCheck(); scheduleTurn(); });
+      } else {
+        postRenderCheck();
+        scheduleTurn();
+      }
+    }, 400);
+    return;
   }
 }
 
@@ -880,7 +904,7 @@ async function runAiDiscard() {
 async function runAiTurn() {
   if (!env || env.state.gameOver) return;
   pendingActionCard = null; // can't be pending when it's the AI's turn
-  selectedAgent === 'mcts' ? await runMctsAiTurn() : await runSyncAiTurn();
+  (selectedAgent === 'mcts' || selectedAgent === 'mcts2') ? await runMctsAiTurn() : await runSyncAiTurn();
 }
 
 async function runSyncAiTurn() {
@@ -982,6 +1006,7 @@ async function runSyncAiTurn() {
 async function runMctsAiTurn() {
   const greedy = new SimpleGreedyAgent();
   while (!env.state.gameOver && env.state.currentPlayer === AI_IDX) {
+    await drainWasabiEvents();
     const { phase } = env.state;
     const legal = env.getLegalActions();
 
@@ -993,20 +1018,72 @@ async function runMctsAiTurn() {
     }
 
     if (phase === Phase.CHEFS_CHOICE_SELECT_CARDS || phase === Phase.CHEFS_CHOICE_SELECT_POSITIONS) {
-      await delay(200);
+      await delay(600);
       env.step(greedy.chooseAction(env, legal));
       render();
       continue;
     }
 
-    if (phase === Phase.PHASE_2) {
+    if (phase === Phase.PHASE_1 || phase === Phase.PHASE_3) {
+      const action = greedy.chooseAction(env, legal);
+      if (action !== 0) {
+        const aiPlayer = env.state.players[AI_IDX];
+        const playable = aiPlayer.hand.filter(c => !c.isSushi && !PASSIVE_ACTION_CARDS.has(c.actionCard));
+        const card = playable[action - 1];
+        if (card) {
+          const name = cardName(card);
+          setPhaseMsg(`Chef plays ${CARD_DISPLAY_NAMES[name] ?? name}…`, true);
+          await playActionCardAnimation(name, CARD_DISPLAY_NAMES[name] ?? name, 1000);
+        }
+      } else {
+        await delay(300);
+      }
+      env.step(action);
+      render();
+
+    } else if (phase === Phase.PHASE_2) {
       showThinking(true);
       const action = await getMctsAction(structuredClone(env.state), legal);
       showThinking(false);
+
+      const hIdx = Math.floor(action / MAX_BELT_SIZE);
+      const bIdx = action % MAX_BELT_SIZE;
+
+      setPhaseMsg('Chef picks a card from hand…');
+      const handCards = document.querySelectorAll('#opp-hand .card-back');
+      const handEl = handCards[hIdx];
+      if (handEl) handEl.classList.add('card-back--ai-pick');
+      await delay(1200);
+
+      setPhaseMsg('Chef targets a belt card…');
+      const beltCards = document.querySelectorAll('#belt-slots .card');
+      const targetEl = beltCards[bIdx];
+      if (targetEl) targetEl.classList.add('card--ai-target');
+      await delay(1200);
+
+      if (handEl) handEl.classList.remove('card-back--ai-pick');
+      if (targetEl) targetEl.classList.remove('card--ai-target');
+
+      const doStep = () => { env.step(action); render(); };
+      if (handEl && targetEl) {
+        await new Promise(resolve => animateSwap(handEl, targetEl, () => { doStep(); resolve(); }));
+      } else {
+        doStep();
+        await delay(200);
+      }
+
+    } else if (phase === Phase.PHASE_4) {
+      await delay(600);
+      const action = greedy.chooseAction(env, legal);
+      const prevBelt = capturePreStepBelt();
       env.step(action);
+      checkAndSetBeltAnim(prevBelt);
+      if (action === 1) toast('Opponent calls Check!');
       render();
+      if (beltDealIn) await animateBeltDeal();
+      await drainWasabiEvents();
+
     } else {
-      await delay(90);
       env.step(greedy.chooseAction(env, legal));
       render();
     }
@@ -1027,7 +1104,9 @@ function getMctsAction(stateSnapshot, legalActions) {
       turnCount: env.turnCount,
       numPlayers: env.numPlayers,
       legalActions,
-      nSimulations: mctsSimulations,
+      nSimulations: mctsNSims,
+      timeBudgetMs: 0,
+      agentType: selectedAgent,
     });
   });
 }
@@ -1393,7 +1472,7 @@ function startGame() {
 }
 
 function agentDisplayName(a) {
-  return { greedy: 'Greedy', random: 'Random', mcts: 'IS-MCTS' }[a] ?? 'AI';
+  return { greedy: 'Greedy', random: 'Random', mcts: 'IS-MCTS', mcts2: 'IS-MCTS+' }[a] ?? 'AI';
 }
 
 function endGame() {
@@ -1482,13 +1561,13 @@ function setupNewGameScreen() {
       btn.classList.add('agent-card--active');
       btn.setAttribute('aria-checked', 'true');
       selectedAgent = btn.dataset.agent;
-      $('mcts-options').style.display = selectedAgent === 'mcts' ? 'block' : 'none';
+      $('mcts-options').style.display = (selectedAgent === 'mcts' || selectedAgent === 'mcts2') ? 'block' : 'none';
     });
   });
 
   $('mcts-sims').addEventListener('input', e => {
-    mctsSimulations = parseInt(e.target.value, 10);
-    $('mcts-sims-val').textContent = e.target.value;
+    mctsNSims = parseInt(e.target.value, 10);
+    $('mcts-sims-val').textContent = mctsNSims;
   });
 
   $('btn-start').addEventListener('click', startGame);

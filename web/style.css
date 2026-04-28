@@ -61,6 +61,23 @@
     --pile-w:  52px;
     --pile-h:  73px;
   }
+
+  .belt-section {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px;
+  }
+  .pile-zone--deck  { order: 1; }
+  .pile-zone--trash { order: 2; }
+  .belt-center      { order: 3; flex-basis: 100%; min-width: 0; }
+
+  .belt-slots  { justify-content: flex-start; }
+  .player-hand { justify-content: flex-start; }
+
+  .controls { padding: 6px 8px; gap: 8px; }
 }
 
 /* ══ Reset ════════════════════════════════════════════════════════════════ */
@@ -253,7 +270,7 @@ body {
   min-height: 72px;
 }
 .opp-zone__info { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.opp-hand { display: flex; gap: 5px; align-items: center; overflow: hidden; flex: 1; }
+.opp-hand { display: flex; gap: 5px; align-items: center; justify-content: center; overflow: hidden; flex: 1; }
 
 /* Small face-down card backs for opponent hand */
 .card-back {
@@ -461,7 +478,7 @@ body {
   display: flex; gap: 8px;
   justify-content: center;
   overflow-x: auto; overflow-y: visible;
-  padding: 4px 4px 12px;
+  padding: 20px 4px 12px;
   scrollbar-width: thin; scrollbar-color: var(--rule) transparent;
 }
 
@@ -668,6 +685,24 @@ body {
 }
 .drawer__close:hover { color: var(--body); }
 .drawer__body { display: flex; flex-direction: column; gap: 8px; }
+.drawer__divider {
+  border: none; border-top: 1px solid var(--rule);
+  margin: 12px 0;
+}
+.drawer__sets-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--muted); margin-bottom: 8px;
+}
+.drawer__set {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-bottom: 10px;
+}
+.drawer__set strong {
+  font-size: 13px; font-weight: 600; color: var(--ink);
+}
+.drawer__set span {
+  font-size: 11px; color: var(--muted); line-height: 1.5;
+}
 
 /* ══ Game over ════════════════════════════════════════════════════════════ */
 #screen-gameover {
