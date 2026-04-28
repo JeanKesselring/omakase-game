@@ -328,10 +328,10 @@ const PHASE_MSGS = [
 ];
 
 const PASS_BTN_LABELS = {
-  [Phase.PHASE_1]: 'No Action',
-  [Phase.PHASE_2]: 'Skip Swap',
-  [Phase.PHASE_3]: 'No Action',
-  [Phase.PHASE_4]: 'End Turn',
+  [Phase.PHASE_1]: 'Skip',
+  [Phase.PHASE_2]: 'Skip',
+  [Phase.PHASE_3]: 'Skip',
+  [Phase.PHASE_4]: 'Done',
 };
 
 function renderPhaseBar(phase, isPlayerTurn, state) {

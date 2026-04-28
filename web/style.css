@@ -910,11 +910,11 @@ body {
    ══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 600px) {
   :root {
-    --card-w: 100px;
-    --card-h: 140px;
+    --card-w: 120px;
+    --card-h: 168px;
     /* Piles match belt card size */
-    --pile-w: 100px;
-    --pile-h: 140px;
+    --pile-w: 120px;
+    --pile-h: 168px;
   }
 
   /* 3-row / 2-col: [opp-hand] | [belt 1fr] | [hand · buttons 1fr] */
@@ -1000,13 +1000,14 @@ body {
   .player-zone__header { display: none; }
   .passive-effects     { display: none; }
   .player-hand { justify-content: center; padding: 8px 10px; gap: 8px; }
-  .player-hand .card   { width: 140px; height: 196px; }
+  .player-hand .card   { width: 148px; height: 207px; }
 
-  /* Row 3 col 2: Score + action buttons */
+  /* Row 3 col 2: Score + action buttons — fixed narrow width */
   .controls {
     grid-row: 3; grid-column: 2;
     flex-direction: column; height: auto;
-    padding: 8px 10px; gap: 8px;
+    width: 70px; min-width: 70px;
+    padding: 8px 6px; gap: 8px;
     border-top: 1px solid var(--rule);
     border-left: 1px solid var(--rule);
     justify-content: center; align-items: stretch;
@@ -1017,8 +1018,8 @@ body {
     border-bottom: 1px solid var(--rule);
   }
   .controls .score-box__label { font-size: 9px; }
-  .controls .score-box__value { font-size: 22px; }
-  .controls .btn { padding: 8px 14px; font-size: 12px; }
+  .controls .score-box__value { font-size: 18px; }
+  .controls .btn { padding: 8px 4px; font-size: 11px; }
 
   #toast-container { bottom: 8px; }
 
