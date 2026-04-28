@@ -901,74 +901,62 @@ body {
 }
 
 /* ══ Mobile portrait (≤600px) ═════════════════════════════════════════════
-   Layout: topbar | belt (1fr) | footer[pips · hand · buttons]
+   Layout: topbar | belt (1fr) | footer[hand · buttons]
+   Phase bar removed — matches game_ui.png reference
    ══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 600px) {
   :root {
-    --card-w: 70px;
-    --card-h: 98px;
-    --pile-w: 48px;
-    --pile-h: 67px;
+    --card-w: 68px;
+    --card-h: 95px;
+    --pile-w: 44px;
+    --pile-h: 62px;
   }
 
+  /* 3-row / 2-column: topbar | belt | [hand · buttons] */
   #screen-game {
-    grid-template-rows: 34px 1fr auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-rows: 40px 1fr auto;
+    grid-template-columns: 1fr auto;
   }
 
-  /* Topbar: burger only, spans all columns */
-  .topbar { grid-row: 1; grid-column: 1 / -1; height: 34px; padding: 0 12px; justify-content: flex-end; }
+  /* Topbar: show turn counter + burger */
+  .topbar { grid-row: 1; grid-column: 1 / -1; height: 40px; padding: 0 12px; justify-content: space-between; }
   .topbar__logo { display: none; }
-  .topbar__center { display: none; }
-  .game-ending-banner { top: 34px; }
+  .topbar__center { display: flex; }
+  .game-ending-banner { top: 40px; }
 
-  /* Opponent zone: removed entirely */
-  .opp-zone { display: none; }
+  /* Hide opponent zone and phase bar */
+  .opp-zone  { display: none; }
+  .phase-bar { display: none; }
 
-  /* Belt: row 2, full width */
-  .belt-section { grid-row: 2; grid-column: 1 / -1; padding: 6px 8px; gap: 8px; }
-  .belt-center { flex: 1; min-width: 0; overflow: hidden; }
-  .belt-track { padding: 6px 8px; }
-  .belt-slots { justify-content: flex-start; gap: 6px; }
-  .belt-labels { display: none; }
+  /* Belt: row 2, full width, dark belt dominates */
+  .belt-section { grid-row: 2; grid-column: 1 / -1; padding: 10px; gap: 8px; align-items: center; }
+  .belt-center  { flex: 1; min-width: 0; overflow: hidden; }
+  .belt-track   { padding: 8px 10px; }
+  .belt-slots   { justify-content: flex-start; gap: 6px; }
+  .belt-labels  { display: none; }
 
-  /* Footer col 1: phase pips stacked vertically */
-  .phase-bar {
-    grid-row: 3; grid-column: 1;
-    flex-direction: column; justify-content: center; align-items: center;
-    height: auto; padding: 8px 8px;
-    border-top: 1px solid var(--rule); border-bottom: none;
-    border-right: 1px solid var(--rule);
-  }
-  .phase-pips { flex-direction: column; gap: 8px; }
-  .phase-step__label { display: none; }
-  .phase-sep { display: none; }
-  .phase-msg { display: none; }
-  .phase-pip { width: 22px; height: 22px; font-size: 10px; }
-
-  /* Footer col 2: player zone (header + scrollable hand) */
+  /* Row 3 col 1: Player hand */
   .player-zone {
-    grid-row: 3; grid-column: 2;
-    padding: 4px 0 2px;
+    grid-row: 3; grid-column: 1;
+    padding: 6px 0 4px;
     border-top: 1px solid var(--rule);
     overflow: hidden;
   }
-  .player-zone__header { padding: 2px 8px; margin-bottom: 2px; }
-  .passive-effects { padding: 0 8px; }
-  .player-hand { justify-content: flex-start; padding: 4px 8px; gap: 6px; }
-  /* Hand cards 10% larger than belt cards */
-  .player-hand .card { width: calc(var(--card-w) * 1.1); height: calc(var(--card-h) * 1.1); }
+  .player-zone__header { padding: 2px 10px; margin-bottom: 2px; }
+  .passive-effects     { padding: 0 10px; }
+  .player-hand { justify-content: flex-start; padding: 4px 10px 6px; gap: 6px; }
+  .player-hand .card   { width: calc(var(--card-w) * 1.1); height: calc(var(--card-h) * 1.1); }
 
-  /* Footer col 3: action buttons stacked */
+  /* Row 3 col 2: Action buttons */
   .controls {
-    grid-row: 3; grid-column: 3;
+    grid-row: 3; grid-column: 2;
     flex-direction: column; height: auto;
     padding: 8px 10px; gap: 8px;
     border-top: 1px solid var(--rule);
     border-left: 1px solid var(--rule);
-    justify-content: center;
+    justify-content: center; align-items: stretch;
   }
-  .controls .btn { padding: 6px 14px; font-size: 12px; }
+  .controls .btn { padding: 8px 14px; font-size: 12px; }
 
   #toast-container { bottom: 8px; }
 
@@ -979,68 +967,56 @@ body {
 }
 
 /* ══ Landscape phones (height ≤ 500px) ══════════════════════════════════════
-   Same 3-row structure, more compact sizing
+   Same 2-column footer, more compact sizing
    ══════════════════════════════════════════════════════════════════════════ */
 @media (max-height: 500px) {
   :root {
-    --card-w: 44px;
-    --card-h: 62px;
+    --card-w: 46px;
+    --card-h: 64px;
     --pile-w: 30px;
     --pile-h: 42px;
   }
 
   #screen-game {
-    grid-template-rows: 26px 1fr auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-rows: 28px 1fr auto;
+    grid-template-columns: 1fr auto;
   }
 
-  .topbar { grid-row: 1; grid-column: 1 / -1; height: 26px; padding: 0 10px; justify-content: flex-end; }
-  .topbar__logo { display: none; }
-  .topbar__center { display: none; }
-  .game-ending-banner { top: 26px; }
+  .topbar { grid-row: 1; grid-column: 1 / -1; height: 28px; padding: 0 10px; justify-content: space-between; }
+  .topbar__logo  { display: none; }
+  .topbar__center { display: flex; }
+  .game-ending-banner { top: 28px; }
 
-  .opp-zone { display: none; }
+  .opp-zone  { display: none; }
+  .phase-bar { display: none; }
 
-  .belt-section { grid-row: 2; grid-column: 1 / -1; padding: 4px 6px; gap: 6px; }
-  .belt-center { flex: 1; min-width: 0; overflow: hidden; }
-  .belt-track { padding: 4px 6px; }
-  .belt-rail { margin: 0; }
-  .belt-slots { justify-content: flex-start; gap: 4px; }
-  .belt-labels { display: none; }
-
-  .phase-bar {
-    grid-row: 3; grid-column: 1;
-    flex-direction: column; justify-content: center; align-items: center;
-    height: auto; padding: 4px 6px;
-    border-top: 1px solid var(--rule); border-bottom: none;
-    border-right: 1px solid var(--rule);
-  }
-  .phase-pips { flex-direction: column; gap: 4px; }
-  .phase-step__label { display: none; }
-  .phase-sep { display: none; }
-  .phase-msg { display: none; }
-  .phase-pip { width: 16px; height: 16px; font-size: 7px; }
+  .belt-section { grid-row: 2; grid-column: 1 / -1; padding: 6px 8px; gap: 6px; align-items: center; }
+  .belt-center  { flex: 1; min-width: 0; overflow: hidden; }
+  .belt-track   { padding: 5px 8px; }
+  .belt-rail    { margin: 0; }
+  .belt-slots   { justify-content: flex-start; gap: 4px; }
+  .belt-labels  { display: none; }
 
   .player-zone {
-    grid-row: 3; grid-column: 2;
-    padding: 2px 0;
+    grid-row: 3; grid-column: 1;
+    padding: 3px 0 2px;
     border-top: 1px solid var(--rule);
     overflow: hidden;
   }
-  .player-zone__header { padding: 1px 6px; margin-bottom: 1px; font-size: 11px; }
-  .passive-effects { padding: 0 6px; }
-  .player-hand { justify-content: flex-start; padding: 3px 6px; gap: 4px; }
-  .player-hand .card { width: calc(var(--card-w) * 1.1); height: calc(var(--card-h) * 1.1); }
+  .player-zone__header { padding: 1px 8px; margin-bottom: 1px; font-size: 11px; }
+  .passive-effects     { padding: 0 8px; }
+  .player-hand { justify-content: flex-start; padding: 3px 8px 4px; gap: 4px; }
+  .player-hand .card   { width: calc(var(--card-w) * 1.1); height: calc(var(--card-h) * 1.1); }
 
   .controls {
-    grid-row: 3; grid-column: 3;
+    grid-row: 3; grid-column: 2;
     flex-direction: column; height: auto;
     padding: 4px 8px; gap: 4px;
     border-top: 1px solid var(--rule);
     border-left: 1px solid var(--rule);
-    justify-content: center;
+    justify-content: center; align-items: stretch;
   }
-  .controls .btn { padding: 3px 10px; font-size: 10px; }
+  .controls .btn { padding: 4px 10px; font-size: 10px; }
 
   #toast-container { bottom: 6px; }
 }
