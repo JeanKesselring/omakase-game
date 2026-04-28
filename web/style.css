@@ -910,11 +910,9 @@ body {
    ══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 600px) {
   :root {
-    --card-w: 120px;
-    --card-h: 168px;
-    /* Piles match belt card size */
-    --pile-w: 120px;
-    --pile-h: 168px;
+    /* Belt/hand cards use dynamic sizing — no fixed --card-w/h override */
+    --pile-w: 72px;
+    --pile-h: 101px;
   }
 
   /* 3-row / 2-col: [opp-hand] | [belt 1fr] | [hand · buttons 1fr] */
@@ -982,10 +980,22 @@ body {
   .belt-track {
     flex: 1;
     border-radius: 0;
-    padding: 10px 12px;
+    padding: 4px 8px;
     display: flex; flex-direction: column; justify-content: center;
   }
-  .belt-slots  { justify-content: center; gap: 8px; }
+  /* Belt slots: fill track height, stretch children so cards fill height */
+  .belt-slots {
+    flex: 1;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 4px;
+    gap: 6px;
+    overflow-x: auto;
+  }
+  /* Belt slot: auto-sized — height from parent stretch, width from card aspect-ratio */
+  .belt-slot { width: auto; height: auto; flex-shrink: 0; }
+  /* Belt cards: fill slot height, width derived from 5:7 aspect ratio */
+  .belt-section .card { height: 100%; width: auto; aspect-ratio: 5/7; }
   .belt-labels { display: none; }
 
   /* Row 3 col 1: Player hand — bigger cards, vertically centered */
@@ -999,8 +1009,17 @@ body {
   }
   .player-zone__header { display: none; }
   .passive-effects     { display: none; }
-  .player-hand { justify-content: center; padding: 8px 10px; gap: 8px; }
-  .player-hand .card   { width: 148px; height: 207px; }
+  .player-hand {
+    flex: 1;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 8px 10px;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  /* Hand cards: fill zone height, width from aspect ratio — horizontally scrollable */
+  .player-hand .card { height: auto; width: auto; aspect-ratio: 5/7; flex-shrink: 0; }
 
   /* Row 3 col 2: Score + action buttons — fixed narrow width */
   .controls {
