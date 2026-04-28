@@ -912,13 +912,14 @@ body {
   :root {
     --card-w: 100px;
     --card-h: 140px;
-    --pile-w: 36px;
-    --pile-h: 50px;
+    /* Piles match belt card size */
+    --pile-w: 100px;
+    --pile-h: 140px;
   }
 
-  /* 3-row / 2-col: [opp-hand] | [belt] | [hand · buttons] */
+  /* 3-row / 2-col: [opp-hand] | [belt 1fr] | [hand · buttons 1fr] */
   #screen-game {
-    grid-template-rows: 50px 1fr auto;
+    grid-template-rows: 50px 1fr 1fr;
     grid-template-columns: 1fr auto;
   }
 
@@ -960,29 +961,46 @@ body {
   /* Phase bar: removed */
   .phase-bar { display: none; }
 
-  /* Row 2: Belt — dark and dominant */
+  /* Row 2: Belt — fills its entire row, no dead space */
   .belt-section {
     grid-row: 2; grid-column: 1 / -1;
-    padding: 10px;
-    gap: 8px;
-    align-items: center;
+    padding: 0; gap: 0;
+    align-items: stretch; /* all children fill full row height */
   }
-  .belt-center { flex: 1; min-width: 0; overflow: hidden; }
-  .belt-track  { padding: 8px 10px; }
+  /* Pile zones: vertically center their content within the tall row */
+  .pile-zone {
+    justify-content: center;
+    padding: 10px 8px;
+  }
+  /* Belt center: column flex so belt-track can flex-grow */
+  .belt-center {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  /* Belt track: grows to fill the row height, cards centered inside */
+  .belt-track {
+    flex: 1;
+    border-radius: 0;
+    padding: 10px 12px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
   .belt-slots  { justify-content: center; gap: 8px; }
   .belt-labels { display: none; }
 
-  /* Row 3 col 1: Player hand — bigger cards, no header */
+  /* Row 3 col 1: Player hand — bigger cards, vertically centered */
   .player-zone {
     grid-row: 3; grid-column: 1;
-    padding: 8px 0;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    padding: 0;
     border-top: 1px solid var(--rule);
     overflow: hidden;
   }
   .player-zone__header { display: none; }
   .passive-effects     { display: none; }
-  .player-hand { justify-content: center; padding: 4px 10px 8px; gap: 8px; }
-  .player-hand .card   { width: 115px; height: 161px; }
+  .player-hand { justify-content: center; padding: 8px 10px; gap: 8px; }
+  .player-hand .card   { width: 140px; height: 196px; }
 
   /* Row 3 col 2: Score + action buttons */
   .controls {
