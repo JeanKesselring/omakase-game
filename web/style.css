@@ -54,57 +54,6 @@
   --z-toast:   200;
 }
 
-@media (max-width: 600px) {
-  :root {
-    --card-w:  120px;
-    --card-h:  168px;
-    --pile-w:   72px;
-    --pile-h:  101px;
-  }
-
-  /* Game screen scrolls internally — all content is reachable without clipping */
-  #screen-game {
-    overflow-y: auto;
-    grid-template-rows: 44px auto auto 62px auto auto;
-  }
-
-  /* Topbar stays pinned while scrolling */
-  .topbar { position: sticky; top: 0; z-index: 30; }
-
-  /* Belt section: CSS grid puts piles on top row, track full-width below */
-  .belt-section {
-    display: grid;
-    grid-template-areas: "deck trash" "belt belt";
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
-    overflow: visible;
-    padding: 8px;
-    gap: 8px;
-    align-items: start;
-  }
-  .pile-zone--deck  { grid-area: deck;  justify-self: center; }
-  .pile-zone--trash { grid-area: trash; justify-self: center; }
-  .belt-center      { grid-area: belt;  min-width: 0; width: 100%; }
-
-  /* Belt starts at left so leftmost card is never hidden */
-  .belt-slots { justify-content: flex-start; }
-
-  /* Player zone: no horizontal padding — hand needs the full width to scroll */
-  .player-zone          { padding: 8px 0 6px; }
-  .player-zone__header  { padding: 0 12px; }
-  .passive-effects      { padding: 0 12px; }
-  .player-hand {
-    justify-content: flex-start;
-    padding: 20px 12px 12px;
-  }
-
-  /* Controls stick to bottom of viewport while scrolling */
-  .controls {
-    position: sticky; bottom: 0;
-    padding: 6px 8px; gap: 8px;
-    z-index: 20; background: var(--paper);
-  }
-}
 
 /* ══ Reset ════════════════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -872,4 +821,57 @@ body {
 /* ══ Reduced motion ══════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* ══ Mobile layout (≤600px) — must be last so it overrides desktop rules ═ */
+@media (max-width: 600px) {
+  :root {
+    --card-w:  120px;
+    --card-h:  168px;
+    --pile-w:   72px;
+    --pile-h:  101px;
+  }
+
+  /* Game screen scrolls internally — all content is reachable without clipping */
+  #screen-game {
+    overflow-y: auto;
+    grid-template-rows: 44px auto auto 62px auto auto;
+  }
+
+  /* Topbar stays pinned while scrolling */
+  .topbar { position: sticky; top: 0; z-index: 30; }
+
+  /* Belt section: CSS grid puts piles on top row, track full-width below */
+  .belt-section {
+    display: grid;
+    grid-template-areas: "deck trash" "belt belt";
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    overflow: visible;
+    padding: 8px;
+    gap: 8px;
+    align-items: start;
+  }
+  .pile-zone--deck  { grid-area: deck;  justify-self: center; }
+  .pile-zone--trash { grid-area: trash; justify-self: center; }
+  .belt-center      { grid-area: belt;  min-width: 0; width: 100%; }
+
+  /* Belt starts at left so leftmost card is never hidden */
+  .belt-slots { justify-content: flex-start; }
+
+  /* Player zone: no horizontal padding — hand needs the full width to scroll */
+  .player-zone          { padding: 8px 0 6px; }
+  .player-zone__header  { padding: 0 12px; }
+  .passive-effects      { padding: 0 12px; }
+  .player-hand {
+    justify-content: flex-start;
+    padding: 20px 12px 12px;
+  }
+
+  /* Controls stick to bottom of viewport while scrolling */
+  .controls {
+    position: sticky; bottom: 0;
+    padding: 6px 8px; gap: 8px;
+    z-index: 20; background: var(--paper);
+  }
 }
