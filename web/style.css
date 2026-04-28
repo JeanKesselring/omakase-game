@@ -903,36 +903,31 @@ body {
 /* ══ Mobile portrait (≤600px) ═════════════════════════════════════════════ */
 @media (max-width: 600px) {
   :root {
-    --card-w: 78px;
-    --card-h: 109px;
+    --card-w: 76px;
+    --card-h: 106px;
     --pile-w: 50px;
     --pile-h: 70px;
   }
 
-  /* Game screen: belt row gets 1fr, everything else fixed or auto */
   #screen-game {
-    overflow: hidden;
     grid-template-rows: 34px auto 1fr 34px auto 44px;
   }
 
-  /* Topbar: burger only, floated right */
   .topbar { height: 34px; padding: 0 12px; justify-content: flex-end; }
   .topbar__logo { display: none; }
   .topbar__center { display: none; }
   .game-ending-banner { top: 34px; }
 
-  /* Opponent zone */
-  .opp-zone { padding: 5px 10px; gap: 6px; }
+  /* min-height: 0 overrides the base 72px floor so opp-zone fits its content */
+  .opp-zone { min-height: 0; padding: 5px 10px; gap: 6px; }
   .card-back { width: 30px; height: 42px; }
 
-  /* Belt */
   .belt-section { padding: 6px 8px; gap: 8px; }
   .belt-center { flex: 1; min-width: 0; overflow: hidden; }
   .belt-track { padding: 6px 8px; }
   .belt-slots { justify-content: flex-start; gap: 6px; }
   .belt-labels { display: none; }
 
-  /* Phase bar: circles only, centered */
   .phase-step__label { display: none; }
   .phase-sep { display: none; }
   .phase-msg { display: none; }
@@ -940,17 +935,15 @@ body {
   .phase-pips { gap: 14px; }
   .phase-pip { width: 24px; height: 24px; font-size: 11px; }
 
-  /* Player zone */
-  .player-zone { padding: 5px 0 3px; }
+  .player-zone { padding: 4px 0 2px; }
   .player-zone__header { padding: 0 10px; margin-bottom: 4px; }
   .passive-effects { padding: 0 10px; }
-  .player-hand { justify-content: flex-start; padding: 16px 10px 8px; gap: 6px; }
+  .player-hand { justify-content: flex-start; padding: 8px 10px 6px; gap: 6px; }
 
-  /* Controls */
   .controls { height: 44px; padding: 5px 12px; gap: 8px; }
+  .controls .btn { padding: 6px 14px; font-size: 13px; }
   #toast-container { bottom: 52px; }
 
-  /* Landing page — 2-col opponent grid, stacked CTA buttons */
   .agent-grid { grid-template-columns: repeat(2, 1fr); }
   .landing-cta { flex-direction: column; align-items: stretch; }
   .landing-cta .btn { justify-content: center; }
@@ -959,44 +952,45 @@ body {
 /* ══ Landscape phones (height ≤ 500px) ════════════════════════════════════ */
 @media (max-height: 500px) {
   :root {
-    --card-w: 58px;
-    --card-h: 81px;
-    --pile-w: 40px;
-    --pile-h: 56px;
+    --card-w: 40px;
+    --card-h: 56px;
+    --pile-w: 31px;
+    --pile-h: 44px;
   }
 
   #screen-game {
-    overflow: hidden;
-    grid-template-rows: 30px auto 1fr 28px auto 32px;
+    grid-template-rows: 28px auto 1fr 26px auto 30px;
   }
 
-  .topbar { height: 30px; padding: 0 10px; justify-content: flex-end; }
+  .topbar { height: 28px; padding: 0 10px; justify-content: flex-end; }
   .topbar__logo { display: none; }
   .topbar__center { display: none; }
-  .game-ending-banner { top: 30px; }
+  .game-ending-banner { top: 28px; }
 
-  .opp-zone { padding: 3px 8px; gap: 6px; }
-  .card-back { width: 22px; height: 31px; }
+  /* min-height: 0 overrides the base 72px floor — critical for landscape */
+  .opp-zone { min-height: 0; padding: 3px 8px; gap: 6px; }
+  .card-back { width: 20px; height: 28px; }
 
   .belt-section { padding: 4px 6px; gap: 6px; }
   .belt-center { flex: 1; min-width: 0; overflow: hidden; }
   .belt-track { padding: 4px 6px; }
-  .belt-rail { margin: 1px 0; }
+  .belt-rail { margin: 0; }
   .belt-slots { justify-content: flex-start; gap: 4px; }
   .belt-labels { display: none; }
 
   .phase-step__label { display: none; }
   .phase-sep { display: none; }
   .phase-msg { display: none; }
-  .phase-bar { height: 28px; padding: 0; justify-content: center; }
-  .phase-pip { width: 20px; height: 20px; font-size: 9px; }
+  .phase-bar { height: 26px; padding: 0; justify-content: center; }
+  .phase-pip { width: 18px; height: 18px; font-size: 8px; }
   .phase-pips { gap: 10px; }
 
   .player-zone { padding: 3px 0 2px; }
   .player-zone__header { padding: 0 8px; margin-bottom: 2px; }
   .passive-effects { padding: 0 8px; }
-  .player-hand { justify-content: flex-start; padding: 10px 8px 4px; gap: 4px; }
+  .player-hand { justify-content: flex-start; padding: 6px 8px 4px; gap: 4px; }
 
-  .controls { height: 32px; padding: 3px 8px; gap: 6px; }
-  #toast-container { bottom: 40px; }
+  .controls { height: 30px; padding: 2px 8px; gap: 6px; }
+  .controls .btn { padding: 3px 12px; font-size: 11px; }
+  #toast-container { bottom: 38px; }
 }
