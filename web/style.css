@@ -56,28 +56,54 @@
 
 @media (max-width: 600px) {
   :root {
-    --card-w:  80px;
-    --card-h:  112px;
-    --pile-w:  52px;
-    --pile-h:  73px;
+    --card-w:  120px;
+    --card-h:  168px;
+    --pile-w:   72px;
+    --pile-h:  101px;
   }
 
+  /* Game screen scrolls internally — all content is reachable without clipping */
+  #screen-game {
+    overflow-y: auto;
+    grid-template-rows: 44px auto auto 62px auto auto;
+  }
+
+  /* Topbar stays pinned while scrolling */
+  .topbar { position: sticky; top: 0; z-index: 30; }
+
+  /* Belt section: CSS grid puts piles on top row, track full-width below */
   .belt-section {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 8px;
+    display: grid;
+    grid-template-areas: "deck trash" "belt belt";
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    overflow: visible;
     padding: 8px;
+    gap: 8px;
+    align-items: start;
   }
-  .pile-zone--deck  { order: 1; }
-  .pile-zone--trash { order: 2; }
-  .belt-center      { order: 3; flex-basis: 100%; min-width: 0; }
+  .pile-zone--deck  { grid-area: deck;  justify-self: center; }
+  .pile-zone--trash { grid-area: trash; justify-self: center; }
+  .belt-center      { grid-area: belt;  min-width: 0; width: 100%; }
 
-  .belt-slots  { justify-content: flex-start; }
-  .player-hand { justify-content: flex-start; }
+  /* Belt starts at left so leftmost card is never hidden */
+  .belt-slots { justify-content: flex-start; }
 
-  .controls { padding: 6px 8px; gap: 8px; }
+  /* Player zone: no horizontal padding — hand needs the full width to scroll */
+  .player-zone          { padding: 8px 0 6px; }
+  .player-zone__header  { padding: 0 12px; }
+  .passive-effects      { padding: 0 12px; }
+  .player-hand {
+    justify-content: flex-start;
+    padding: 20px 12px 12px;
+  }
+
+  /* Controls stick to bottom of viewport while scrolling */
+  .controls {
+    position: sticky; bottom: 0;
+    padding: 6px 8px; gap: 8px;
+    z-index: 20; background: var(--paper);
+  }
 }
 
 /* ══ Reset ════════════════════════════════════════════════════════════════ */
