@@ -900,124 +900,103 @@ body {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
-/* ══ Mobile (≤600px) — must be last so it overrides desktop rules ══════════ */
+/* ══ Mobile portrait (≤600px) ═════════════════════════════════════════════ */
 @media (max-width: 600px) {
   :root {
-    --card-w: 80px;
-    --card-h: 112px;
-    --pile-w: 54px;
-    --pile-h: 76px;
+    --card-w: 78px;
+    --card-h: 109px;
+    --pile-w: 50px;
+    --pile-h: 70px;
   }
 
-  /* Game screen fits in viewport — no overflow scroll */
+  /* Game screen: belt row gets 1fr, everything else fixed or auto */
   #screen-game {
     overflow: hidden;
-    grid-template-rows: 34px 50px 1fr 34px auto 42px;
+    grid-template-rows: 34px auto 1fr 34px auto 44px;
   }
 
-  /* Topbar: hide logo + turn counter, keep only burger */
-  .topbar { height: 34px; padding: 0 10px; justify-content: flex-end; }
-  .topbar__logo,
+  /* Topbar: burger only, floated right */
+  .topbar { height: 34px; padding: 0 12px; justify-content: flex-end; }
+  .topbar__logo { display: none; }
   .topbar__center { display: none; }
-
-  /* Game-ending banner aligns with new topbar height */
   .game-ending-banner { top: 34px; }
 
-  /* Opponent zone: compact */
-  .opp-zone { min-height: 50px; padding: 4px 10px; gap: 8px; }
-  .card-back { width: 38px; height: 53px; }
+  /* Opponent zone */
+  .opp-zone { padding: 5px 10px; gap: 6px; }
+  .card-back { width: 30px; height: 42px; }
 
-  /* Belt: piles on sides, belt fills center */
-  .belt-section {
-    display: flex; flex-direction: row;
-    align-items: center; justify-content: center;
-    padding: 6px 8px; gap: 8px; overflow: hidden;
-  }
-  .pile-zone--deck,
-  .pile-zone--trash { flex-shrink: 0; }
+  /* Belt */
+  .belt-section { padding: 6px 8px; gap: 8px; }
   .belt-center { flex: 1; min-width: 0; overflow: hidden; }
+  .belt-track { padding: 6px 8px; }
   .belt-slots { justify-content: flex-start; gap: 6px; }
+  .belt-labels { display: none; }
 
-  /* Phase bar: circles only, centered — no labels, no separator, no message */
-  .phase-step__label,
-  .phase-sep,
+  /* Phase bar: circles only, centered */
+  .phase-step__label { display: none; }
+  .phase-sep { display: none; }
   .phase-msg { display: none; }
   .phase-bar { height: 34px; padding: 0; justify-content: center; }
-  .phase-pips { gap: 12px; }
-  .phase-pip { width: 22px; height: 22px; font-size: 10px; }
+  .phase-pips { gap: 14px; }
+  .phase-pip { width: 24px; height: 24px; font-size: 11px; }
 
   /* Player zone */
-  .player-zone { padding: 6px 0 4px; }
+  .player-zone { padding: 5px 0 3px; }
   .player-zone__header { padding: 0 10px; margin-bottom: 4px; }
   .passive-effects { padding: 0 10px; }
   .player-hand { justify-content: flex-start; padding: 16px 10px 8px; gap: 6px; }
 
   /* Controls */
-  .controls { height: 42px; padding: 5px 10px; gap: 8px; }
+  .controls { height: 44px; padding: 5px 12px; gap: 8px; }
+  #toast-container { bottom: 52px; }
 
-  /* Toast above controls */
-  #toast-container { bottom: 50px; }
-
-  /* Landing page on mobile */
-  .landing-page { padding: 28px 20px 60px; }
-  .landing-header { margin-bottom: 28px; }
-  .landing-title { margin-bottom: 14px; }
-  .landing-desc { font-size: 15px; margin-bottom: 28px; }
+  /* Landing page — 2-col opponent grid, stacked CTA buttons */
   .agent-grid { grid-template-columns: repeat(2, 1fr); }
-  .agent-card { min-height: 130px; padding: 14px 12px; }
-  .agent-card__jp { font-size: 18px; }
   .landing-cta { flex-direction: column; align-items: stretch; }
   .landing-cta .btn { justify-content: center; }
 }
 
-/* ══ Landscape / very short screens (height ≤ 500px) ═══════════════════════ */
+/* ══ Landscape phones (height ≤ 500px) ════════════════════════════════════ */
 @media (max-height: 500px) {
   :root {
-    --card-w: 60px;
-    --card-h: 84px;
-    --pile-w: 42px;
-    --pile-h: 59px;
+    --card-w: 58px;
+    --card-h: 81px;
+    --pile-w: 40px;
+    --pile-h: 56px;
   }
 
   #screen-game {
     overflow: hidden;
-    grid-template-rows: 32px 44px 1fr 30px auto 36px;
+    grid-template-rows: 30px auto 1fr 28px auto 32px;
   }
 
-  .topbar { height: 32px; padding: 0 8px; justify-content: flex-end; }
-  .topbar__logo,
+  .topbar { height: 30px; padding: 0 10px; justify-content: flex-end; }
+  .topbar__logo { display: none; }
   .topbar__center { display: none; }
-  .game-ending-banner { top: 32px; }
+  .game-ending-banner { top: 30px; }
 
-  .opp-zone { min-height: 44px; padding: 3px 8px; }
-  .card-back { width: 30px; height: 42px; }
+  .opp-zone { padding: 3px 8px; gap: 6px; }
+  .card-back { width: 22px; height: 31px; }
 
-  .belt-section {
-    display: flex; flex-direction: row;
-    align-items: center; padding: 4px 6px; gap: 6px; overflow: hidden;
-  }
-  .pile-zone--deck,
-  .pile-zone--trash { flex-shrink: 0; }
+  .belt-section { padding: 4px 6px; gap: 6px; }
   .belt-center { flex: 1; min-width: 0; overflow: hidden; }
-  .belt-track { padding: 4px 6px; border-radius: 6px; }
+  .belt-track { padding: 4px 6px; }
   .belt-rail { margin: 1px 0; }
   .belt-slots { justify-content: flex-start; gap: 4px; }
   .belt-labels { display: none; }
 
-  .phase-step__label,
-  .phase-sep,
+  .phase-step__label { display: none; }
+  .phase-sep { display: none; }
   .phase-msg { display: none; }
-  .phase-bar { height: 30px; padding: 0; justify-content: center; }
+  .phase-bar { height: 28px; padding: 0; justify-content: center; }
   .phase-pip { width: 20px; height: 20px; font-size: 9px; }
-  .phase-pips { gap: 8px; }
+  .phase-pips { gap: 10px; }
 
-  .player-zone { padding: 4px 0 2px; }
+  .player-zone { padding: 3px 0 2px; }
   .player-zone__header { padding: 0 8px; margin-bottom: 2px; }
   .passive-effects { padding: 0 8px; }
-  .player-hand { padding: 12px 8px 4px; gap: 4px; }
+  .player-hand { justify-content: flex-start; padding: 10px 8px 4px; gap: 4px; }
 
-  .controls { height: 36px; padding: 4px 8px; gap: 6px; }
-  .btn { font-size: 12px; padding: 6px 14px; }
-
-  #toast-container { bottom: 44px; }
+  .controls { height: 32px; padding: 3px 8px; gap: 6px; }
+  #toast-container { bottom: 40px; }
 }
