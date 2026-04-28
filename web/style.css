@@ -900,97 +900,147 @@ body {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 
-/* ══ Mobile portrait (≤600px) ═════════════════════════════════════════════ */
+/* ══ Mobile portrait (≤600px) ═════════════════════════════════════════════
+   Layout: topbar | belt (1fr) | footer[pips · hand · buttons]
+   ══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 600px) {
   :root {
-    --card-w: 76px;
-    --card-h: 106px;
-    --pile-w: 50px;
-    --pile-h: 70px;
+    --card-w: 70px;
+    --card-h: 98px;
+    --pile-w: 48px;
+    --pile-h: 67px;
   }
 
   #screen-game {
-    grid-template-rows: 34px auto 1fr 34px auto 44px;
+    grid-template-rows: 34px 1fr auto;
+    grid-template-columns: auto 1fr auto;
   }
 
-  .topbar { height: 34px; padding: 0 12px; justify-content: flex-end; }
+  /* Topbar: burger only, spans all columns */
+  .topbar { grid-row: 1; grid-column: 1 / -1; height: 34px; padding: 0 12px; justify-content: flex-end; }
   .topbar__logo { display: none; }
   .topbar__center { display: none; }
   .game-ending-banner { top: 34px; }
 
-  /* min-height: 0 overrides the base 72px floor so opp-zone fits its content */
-  .opp-zone { min-height: 0; padding: 5px 10px; gap: 6px; }
-  .card-back { width: 30px; height: 42px; }
+  /* Opponent zone: removed entirely */
+  .opp-zone { display: none; }
 
-  .belt-section { padding: 6px 8px; gap: 8px; }
+  /* Belt: row 2, full width */
+  .belt-section { grid-row: 2; grid-column: 1 / -1; padding: 6px 8px; gap: 8px; }
   .belt-center { flex: 1; min-width: 0; overflow: hidden; }
   .belt-track { padding: 6px 8px; }
   .belt-slots { justify-content: flex-start; gap: 6px; }
   .belt-labels { display: none; }
 
+  /* Footer col 1: phase pips stacked vertically */
+  .phase-bar {
+    grid-row: 3; grid-column: 1;
+    flex-direction: column; justify-content: center; align-items: center;
+    height: auto; padding: 8px 8px;
+    border-top: 1px solid var(--rule); border-bottom: none;
+    border-right: 1px solid var(--rule);
+  }
+  .phase-pips { flex-direction: column; gap: 8px; }
   .phase-step__label { display: none; }
   .phase-sep { display: none; }
   .phase-msg { display: none; }
-  .phase-bar { height: 34px; padding: 0; justify-content: center; }
-  .phase-pips { gap: 14px; }
-  .phase-pip { width: 24px; height: 24px; font-size: 11px; }
+  .phase-pip { width: 22px; height: 22px; font-size: 10px; }
 
-  .player-zone { padding: 4px 0 2px; }
-  .player-zone__header { padding: 0 10px; margin-bottom: 4px; }
-  .passive-effects { padding: 0 10px; }
-  .player-hand { justify-content: flex-start; padding: 8px 10px 6px; gap: 6px; }
+  /* Footer col 2: player zone (header + scrollable hand) */
+  .player-zone {
+    grid-row: 3; grid-column: 2;
+    padding: 4px 0 2px;
+    border-top: 1px solid var(--rule);
+    overflow: hidden;
+  }
+  .player-zone__header { padding: 2px 8px; margin-bottom: 2px; }
+  .passive-effects { padding: 0 8px; }
+  .player-hand { justify-content: flex-start; padding: 4px 8px; gap: 6px; }
+  /* Hand cards 10% larger than belt cards */
+  .player-hand .card { width: calc(var(--card-w) * 1.1); height: calc(var(--card-h) * 1.1); }
 
-  .controls { height: 44px; padding: 5px 12px; gap: 8px; }
-  .controls .btn { padding: 6px 14px; font-size: 13px; }
-  #toast-container { bottom: 52px; }
+  /* Footer col 3: action buttons stacked */
+  .controls {
+    grid-row: 3; grid-column: 3;
+    flex-direction: column; height: auto;
+    padding: 8px 10px; gap: 8px;
+    border-top: 1px solid var(--rule);
+    border-left: 1px solid var(--rule);
+    justify-content: center;
+  }
+  .controls .btn { padding: 6px 14px; font-size: 12px; }
 
+  #toast-container { bottom: 8px; }
+
+  /* Landing page */
   .agent-grid { grid-template-columns: repeat(2, 1fr); }
   .landing-cta { flex-direction: column; align-items: stretch; }
   .landing-cta .btn { justify-content: center; }
 }
 
-/* ══ Landscape phones (height ≤ 500px) ════════════════════════════════════ */
+/* ══ Landscape phones (height ≤ 500px) ══════════════════════════════════════
+   Same 3-row structure, more compact sizing
+   ══════════════════════════════════════════════════════════════════════════ */
 @media (max-height: 500px) {
   :root {
-    --card-w: 40px;
-    --card-h: 56px;
-    --pile-w: 31px;
-    --pile-h: 44px;
+    --card-w: 44px;
+    --card-h: 62px;
+    --pile-w: 30px;
+    --pile-h: 42px;
   }
 
   #screen-game {
-    grid-template-rows: 28px auto 1fr 26px auto 30px;
+    grid-template-rows: 26px 1fr auto;
+    grid-template-columns: auto 1fr auto;
   }
 
-  .topbar { height: 28px; padding: 0 10px; justify-content: flex-end; }
+  .topbar { grid-row: 1; grid-column: 1 / -1; height: 26px; padding: 0 10px; justify-content: flex-end; }
   .topbar__logo { display: none; }
   .topbar__center { display: none; }
-  .game-ending-banner { top: 28px; }
+  .game-ending-banner { top: 26px; }
 
-  /* min-height: 0 overrides the base 72px floor — critical for landscape */
-  .opp-zone { min-height: 0; padding: 3px 8px; gap: 6px; }
-  .card-back { width: 20px; height: 28px; }
+  .opp-zone { display: none; }
 
-  .belt-section { padding: 4px 6px; gap: 6px; }
+  .belt-section { grid-row: 2; grid-column: 1 / -1; padding: 4px 6px; gap: 6px; }
   .belt-center { flex: 1; min-width: 0; overflow: hidden; }
   .belt-track { padding: 4px 6px; }
   .belt-rail { margin: 0; }
   .belt-slots { justify-content: flex-start; gap: 4px; }
   .belt-labels { display: none; }
 
+  .phase-bar {
+    grid-row: 3; grid-column: 1;
+    flex-direction: column; justify-content: center; align-items: center;
+    height: auto; padding: 4px 6px;
+    border-top: 1px solid var(--rule); border-bottom: none;
+    border-right: 1px solid var(--rule);
+  }
+  .phase-pips { flex-direction: column; gap: 4px; }
   .phase-step__label { display: none; }
   .phase-sep { display: none; }
   .phase-msg { display: none; }
-  .phase-bar { height: 26px; padding: 0; justify-content: center; }
-  .phase-pip { width: 18px; height: 18px; font-size: 8px; }
-  .phase-pips { gap: 10px; }
+  .phase-pip { width: 16px; height: 16px; font-size: 7px; }
 
-  .player-zone { padding: 3px 0 2px; }
-  .player-zone__header { padding: 0 8px; margin-bottom: 2px; }
-  .passive-effects { padding: 0 8px; }
-  .player-hand { justify-content: flex-start; padding: 6px 8px 4px; gap: 4px; }
+  .player-zone {
+    grid-row: 3; grid-column: 2;
+    padding: 2px 0;
+    border-top: 1px solid var(--rule);
+    overflow: hidden;
+  }
+  .player-zone__header { padding: 1px 6px; margin-bottom: 1px; font-size: 11px; }
+  .passive-effects { padding: 0 6px; }
+  .player-hand { justify-content: flex-start; padding: 3px 6px; gap: 4px; }
+  .player-hand .card { width: calc(var(--card-w) * 1.1); height: calc(var(--card-h) * 1.1); }
 
-  .controls { height: 30px; padding: 2px 8px; gap: 6px; }
-  .controls .btn { padding: 3px 12px; font-size: 11px; }
-  #toast-container { bottom: 38px; }
+  .controls {
+    grid-row: 3; grid-column: 3;
+    flex-direction: column; height: auto;
+    padding: 4px 8px; gap: 4px;
+    border-top: 1px solid var(--rule);
+    border-left: 1px solid var(--rule);
+    justify-content: center;
+  }
+  .controls .btn { padding: 3px 10px; font-size: 10px; }
+
+  #toast-container { bottom: 6px; }
 }
