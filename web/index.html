@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Omakase</title>
+  <title>Omakase — A sushi card game</title>
   <link rel="icon" type="image/png" href="../cards/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,75 +17,153 @@
   ════════════════════════════════════ -->
   <div id="screen-newgame" class="screen screen--active">
 
-    <div class="newgame__bg" aria-hidden="true">
-      <div class="newgame__belt-scroll">
-        <div class="belt-silhouette"></div><div class="belt-silhouette"></div>
-        <div class="belt-silhouette"></div><div class="belt-silhouette"></div>
-        <div class="belt-silhouette"></div><div class="belt-silhouette"></div>
-        <div class="belt-silhouette"></div><div class="belt-silhouette"></div>
-        <div class="belt-silhouette"></div><div class="belt-silhouette"></div>
-        <div class="belt-silhouette"></div><div class="belt-silhouette"></div>
-      </div>
-    </div>
+    <main class="landing-page">
 
-    <div class="newgame__content">
-      <div class="newgame__logo">
-        <span class="newgame__kanji" aria-hidden="true">お任せ</span>
-        <h1 class="newgame__title">Omakase</h1>
-        <p class="newgame__subtitle">A card game of taste and strategy</p>
-      </div>
+      <!-- Header: logo · brand · tagline -->
+      <header class="landing-header">
+        <img src="../cards/favicon.png" alt="" class="landing-logo-img">
+        <div>
+          <div class="landing-brand">OMAKASE</div>
+          <div class="landing-tagline">A sushi card game · 2–4 players · 30 min</div>
+        </div>
+      </header>
 
-      <div class="newgame__form">
-        <p class="newgame__label">Choose your opponent</p>
-        <div class="agent-grid" role="radiogroup">
-          <button class="agent-card agent-card--active" data-agent="greedy" role="radio" aria-checked="true">
-            <span class="agent-card__name">Greedy</span>
-            <span class="agent-card__desc">Set-aware, strategic swaps</span>
+      <!-- Display title + description -->
+      <h1 class="landing-title">Omakase</h1>
+      <p class="landing-desc">Collect sushi off the conveyor belt. Build the Omakase Set for ¥6,000 — or get there first and call the check.</p>
+
+      <!-- Opponent picker -->
+      <p class="landing-section-label">Opponent</p>
+      <div class="agent-grid" role="radiogroup">
+
+        <button class="agent-card agent-card--active" data-agent="greedy" role="radio" aria-checked="true">
+          <div class="agent-card__top">
+            <span class="jp-tab jp-tab--nori">欲</span>
             <span class="agent-card__diff diff--beginner">Beginner</span>
-          </button>
-          <button class="agent-card" data-agent="random" role="radio" aria-checked="false">
-            <span class="agent-card__name">Random</span>
-            <span class="agent-card__desc">Pure chaos, great for learning</span>
-            <span class="agent-card__diff diff--unranked">Unranked</span>
-          </button>
-          <button class="agent-card" data-agent="mcts" role="radio" aria-checked="false">
-            <span class="agent-card__name">IS-MCTS</span>
-            <span class="agent-card__desc">Monte Carlo tree search</span>
-            <span class="agent-card__diff diff--expert">Expert</span>
-          </button>
-          <button class="agent-card" data-agent="mcts2" role="radio" aria-checked="false">
-            <span class="agent-card__name">IS-MCTS+</span>
-            <span class="agent-card__desc">Improved value estimation</span>
-            <span class="agent-card__diff diff--expert">Expert+</span>
-          </button>
-        </div>
-
-        <div id="mcts-options" class="mcts-options" style="display:none">
-          <label class="newgame__label" for="mcts-sims">Simulations per move</label>
-          <div class="slider-row">
-            <input type="range" id="mcts-sims" min="100" max="2000" value="500" step="100">
-            <span id="mcts-sims-val" class="slider-val">500</span>
           </div>
-        </div>
-
-        <button id="btn-start" class="btn btn--primary btn--lg">
-          Begin Service <span aria-hidden="true">→</span>
+          <div class="agent-card__jp">欲張り</div>
+          <div class="agent-card__footer">
+            <div class="agent-card__name">Greedy</div>
+            <div class="agent-card__dots">
+              <span class="diff-dot diff-dot--on"></span>
+              <span class="diff-dot"></span>
+              <span class="diff-dot"></span>
+              <span class="diff-dot"></span>
+            </div>
+          </div>
         </button>
 
-        <button id="btn-rules-toggle" class="btn btn--ghost btn--sm rules-toggle">
+        <button class="agent-card" data-agent="random" role="radio" aria-checked="false">
+          <div class="agent-card__top">
+            <span class="jp-tab jp-tab--peri">運</span>
+            <span class="agent-card__diff diff--unranked">Unranked</span>
+          </div>
+          <div class="agent-card__jp">運任せ</div>
+          <div class="agent-card__footer">
+            <div class="agent-card__name">Random</div>
+            <div class="agent-card__dots">
+              <span class="diff-dot"></span>
+              <span class="diff-dot"></span>
+              <span class="diff-dot"></span>
+              <span class="diff-dot"></span>
+            </div>
+          </div>
+        </button>
+
+        <button class="agent-card" data-agent="mcts" role="radio" aria-checked="false">
+          <div class="agent-card__top">
+            <span class="jp-tab jp-tab--mustard">読</span>
+            <span class="agent-card__diff diff--expert">Expert</span>
+          </div>
+          <div class="agent-card__jp">先読み</div>
+          <div class="agent-card__footer">
+            <div class="agent-card__name">IS-MCTS</div>
+            <div class="agent-card__dots">
+              <span class="diff-dot diff-dot--on"></span>
+              <span class="diff-dot diff-dot--on"></span>
+              <span class="diff-dot diff-dot--on"></span>
+              <span class="diff-dot"></span>
+            </div>
+          </div>
+        </button>
+
+        <button class="agent-card" data-agent="mcts2" role="radio" aria-checked="false">
+          <div class="agent-card__top">
+            <span class="jp-tab jp-tab--salmon">謀</span>
+            <span class="agent-card__diff diff--expert">Expert+</span>
+          </div>
+          <div class="agent-card__jp">深謀</div>
+          <div class="agent-card__footer">
+            <div class="agent-card__name">IS-MCTS+</div>
+            <div class="agent-card__dots">
+              <span class="diff-dot diff-dot--on"></span>
+              <span class="diff-dot diff-dot--on"></span>
+              <span class="diff-dot diff-dot--on"></span>
+              <span class="diff-dot diff-dot--on"></span>
+            </div>
+          </div>
+        </button>
+
+      </div><!-- /agent-grid -->
+
+      <!-- MCTS sim count (shown for IS-MCTS agents) -->
+      <div id="mcts-options" class="mcts-options" style="display:none">
+        <label class="newgame__label" for="mcts-sims">Simulations per move</label>
+        <div class="slider-row">
+          <input type="range" id="mcts-sims" min="100" max="2000" value="500" step="100">
+          <span id="mcts-sims-val" class="slider-val">500</span>
+        </div>
+      </div>
+
+      <!-- CTA row -->
+      <div class="landing-cta">
+        <button id="btn-start" class="btn btn--salmon btn--lg">
+          Begin Service →
+        </button>
+        <button id="btn-rules-toggle" class="btn btn--ghost btn--lg">
           Rules &amp; Sets ▾
         </button>
-        <div id="rules-panel" class="rules-panel" hidden>
-          <div class="rules-sets">
-            <div class="rules-set"><strong>Omakase Set — ¥6,000</strong><br>Fatty Tuna · Conger Eel · Crab · Tuna · Salmon · Salmon Roe</div>
-            <div class="rules-set"><strong>Sakura Set — ¥4,500</strong><br>Conger Eel · Crab · Tuna · Shrimp · Tuna Roll · Salmon Roll</div>
-            <div class="rules-set"><strong>Ume Set — ¥3,500</strong><br>Salmon Roe · Salmon · Shrimp · Tuna Roll · Salmon Roll · Omelette</div>
-            <div class="rules-set"><strong>Kids Set — ¥2,000</strong><br>Omelette · Cucumber Roll · Tofu · Karaage</div>
-          </div>
-          <p class="rules-note">Each turn: (1) optionally play an action card, (2) swap a hand card with the belt, (3) optionally play an action card, (4) optionally call Check. Call Check when you have a complete set to end the game.</p>
-        </div>
       </div>
-    </div>
+
+      <!-- Rules panel (toggled) -->
+      <div id="rules-panel" class="rules-panel" hidden>
+        <div class="rules-sets">
+          <div class="rules-set">
+            <div class="rules-set__header"><strong>Omakase Set</strong><span class="jp-tab jp-tab--salmon">¥6,000</span></div>
+            Fatty Tuna · Conger Eel · Crab · Tuna · Salmon · Salmon Roe
+          </div>
+          <div class="rules-set">
+            <div class="rules-set__header"><strong>Sakura Set</strong><span class="jp-tab jp-tab--peri">¥4,500</span></div>
+            Conger Eel · Crab · Tuna · Shrimp · Tuna Roll · Salmon Roll
+          </div>
+          <div class="rules-set">
+            <div class="rules-set__header"><strong>Ume Set</strong><span class="jp-tab jp-tab--nori">¥3,500</span></div>
+            Salmon Roe · Salmon · Shrimp · Tuna Roll · Salmon Roll · Omelette
+          </div>
+          <div class="rules-set">
+            <div class="rules-set__header"><strong>Kids Set</strong><span class="jp-tab jp-tab--mustard">¥2,000</span></div>
+            Omelette · Cucumber Roll · Tofu · Karaage
+          </div>
+        </div>
+        <p class="rules-note">Each turn: (1) optionally play an action card, (2) swap a hand card with the belt, (3) optionally play an action card, (4) optionally call Check. Call Check when you have a complete set to end the game.</p>
+      </div>
+
+      <!-- Tutorial video -->
+      <p class="landing-section-label" style="margin-top:52px">Tutorial</p>
+      <div class="landing-video">
+        <iframe
+          src="https://www.youtube-nocookie.com/embed/lOHlmx0hAdM?rel=0&modestbranding=1"
+          title="Omakase — How to play"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen></iframe>
+      </div>
+
+      <!-- Shop link -->
+      <p class="landing-shop">
+        <a href="https://omakasegame.com/" class="link-arrow" target="_blank" rel="noopener">Buy the physical game ↗</a>
+      </p>
+
+    </main>
   </div>
 
   <!-- ════════════════════════════════════
@@ -282,22 +360,25 @@
           <div class="drawer__sets">
             <p class="drawer__sets-title">Sets</p>
             <div class="drawer__set">
-              <strong>Omakase — ¥6,000</strong>
+              <strong>Omakase <span class="jp-tab jp-tab--salmon">¥6,000</span></strong>
               <span>Fatty Tuna · Conger Eel · Crab · Tuna · Salmon · Salmon Roe</span>
             </div>
             <div class="drawer__set">
-              <strong>Sakura — ¥4,500</strong>
+              <strong>Sakura <span class="jp-tab jp-tab--peri">¥4,500</span></strong>
               <span>Conger Eel · Crab · Tuna · Shrimp · Tuna Roll · Salmon Roll</span>
             </div>
             <div class="drawer__set">
-              <strong>Ume — ¥3,500</strong>
+              <strong>Ume <span class="jp-tab jp-tab--nori">¥3,500</span></strong>
               <span>Salmon Roe · Salmon · Shrimp · Tuna Roll · Salmon Roll · Omelette</span>
             </div>
             <div class="drawer__set">
-              <strong>Kids — ¥2,000</strong>
+              <strong>Kids <span class="jp-tab jp-tab--mustard">¥2,000</span></strong>
               <span>Omelette · Cucumber Roll · Tofu · Karaage</span>
             </div>
           </div>
+          <hr class="drawer__divider">
+          <a href="https://www.youtube.com/watch?v=lOHlmx0hAdM" class="drawer__link" target="_blank" rel="noopener">Watch tutorial ↗</a>
+          <a href="https://omakasegame.com/" class="drawer__link" target="_blank" rel="noopener">Buy the game ↗</a>
         </div>
       </div>
     </div>

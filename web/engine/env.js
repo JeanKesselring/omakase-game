@@ -420,6 +420,10 @@ export class OmakaseEnv {
           }
           vp.hand.splice(vp.hand.indexOf(stolen), 1);
           player.hand.push(stolen);
+          if (!stolen.isSushi && stolen.actionCard === ActionCard.WASABI) {
+            player.wasabiSkipFlag++;
+            state.wasabiEvents.push({ type: 'draw', playerIdx });
+          }
         }
       }
       return true;

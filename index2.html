@@ -1,0 +1,135 @@
+I ad<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Omakase — A sushi card game</title>
+<link rel="icon" href="uploads/favicon.png" />
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<style>
+  :root {
+    /* Pulled from the physical product */
+    --peri:        #8A9AD0;
+    --peri-deep:   #6374B5;
+    --peri-soft:   #C4CEE8;
+    --peri-wash:   #E5EAF5;
+    --cream:       #F5E9C9;
+    --cream-soft:  #FAF3DF;
+    --paper:       #FBF7EC;
+    --salmon:      #E4525A;
+    --salmon-ink:  #C63B44;
+    --nori:        #4A7A4E;
+    --nori-deep:   #2F5A35;
+    --mustard:     #E8A936;
+    --ink:         #1B1E2E;
+    --body:        #2E3244;
+    --muted:       #6B7088;
+    --rule:        #D5D0BC;
+    --pink:        #E89BA8;  /* photo bg */
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--paper);
+    color: var(--body);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { overflow-x: hidden; }
+
+  h1, h2, h3, h4 { color: var(--ink); font-weight: 700; letter-spacing: -0.018em; }
+  a { color: inherit; }
+
+  .eyebrow {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--salmon);
+  }
+  .eyebrow.peri { color: var(--peri-deep); }
+  .eyebrow.muted { color: var(--muted); }
+
+  .h-section {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--salmon);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .h-section::before {
+    content: ""; width: 6px; height: 6px;
+    background: currentColor; border-radius: 50%;
+  }
+  .h-section.peri { color: var(--peri-deep); }
+  .h-section.cream { color: var(--cream); }
+
+  .jp { font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* JP tabs from the cards */
+  .jp-tab {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 16px; padding: 0 5px;
+    font-family: 'Hiragino Mincho ProN', serif;
+    font-size: 10px; font-weight: 500; letter-spacing: 0.05em;
+    color: var(--ink);
+    background: var(--mustard);
+  }
+  .jp-tab.nori   { background: var(--nori);      color: var(--cream); }
+  .jp-tab.salmon { background: var(--salmon);    color: var(--cream); }
+  .jp-tab.peri   { background: var(--peri-soft); color: var(--peri-deep); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: inherit; font-weight: 600; font-size: 14px;
+    letter-spacing: 0.02em;
+    padding: 14px 22px; border-radius: 4px; border: 0;
+    cursor: pointer;
+    transition: transform 80ms ease, background 120ms ease;
+    white-space: nowrap;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--peri-deep); color: var(--cream); }
+  .btn-primary:hover { background: #50609F; }
+  .btn-salmon { background: var(--salmon); color: var(--cream); }
+  .btn-salmon:hover { background: var(--salmon-ink); }
+  .btn-ghost {
+    background: transparent; color: var(--ink);
+    border: 1px solid rgba(27,30,46,0.18);
+  }
+  .btn-ghost:hover { background: rgba(27,30,46,0.04); }
+  .btn-lg { padding: 18px 30px; font-size: 15px; }
+
+  /* small horizontal rule */
+  .rule { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+
+  /* link with arrow */
+  .link-arrow {
+    font-weight: 600; text-decoration: none;
+    color: var(--peri-deep);
+    border-bottom: 1px solid currentColor;
+    padding-bottom: 1px;
+  }
+
+  /* card-stack motif */
+  .ticket {
+    background: var(--cream-soft);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(27,30,46,0.04), 0 4px 14px rgba(27,30,46,0.06);
+  }
+
+  ::selection { background: var(--salmon); color: var(--cream); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+</body>
+</html>
