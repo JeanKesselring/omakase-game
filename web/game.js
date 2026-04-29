@@ -241,7 +241,7 @@ function renderBelt(state, isPlayerTurn, phase) {
     if (isTarget) {
       cardEl.style.cursor = 'pointer';
       if (swapIntent) {
-        cardEl.addEventListener('click', () => onBeltCardClickWithSwapIntent(bIdx));
+        cardEl.addEventListener('click', e => { e.stopPropagation(); onBeltCardClickWithSwapIntent(bIdx); });
       } else {
         cardEl.addEventListener('click', () => onBeltCardClick(bIdx));
       }
@@ -313,7 +313,9 @@ function renderPlayerHand(player, state, isPlayerTurn, phase) {
           }
         }
       } else {
-        disabled = true;
+        // Sushi/passive cards are interactive in Phase 1:
+        // clicking deselects swapIntent, or auto-skips to Phase 2 to initiate a swap.
+        disabled = phase !== Phase.PHASE_1;
       }
     } else {
       disabled = !isPlayerTurn;
@@ -338,10 +340,24 @@ function renderPlayerHand(player, state, isPlayerTurn, phase) {
       } else if (phase === Phase.PHASE_1) {
         if (swapIntent?.card === card) {
           el.style.cursor = 'pointer';
-          el.addEventListener('click', () => { swapIntent = null; render(); });
+          el.addEventListener('click', e => { e.stopPropagation(); swapIntent = null; render(); });
         } else if (!actionChoice) {
           el.style.cursor = 'pointer';
-          el.addEventListener('click', () => { swapIntent = null; onActionCardClick(card, player); });
+          if (swapIntent) {
+            // Any card deselects the swap-marked card
+            el.addEventListener('click', () => { swapIntent = null; render(); });
+          } else if (isPlayable) {
+            // Active action card: show play/swap popup
+            el.addEventListener('click', () => onActionCardClick(card, player));
+          } else {
+            // Sushi or passive action card: skip Phase 1 and pre-select for swap
+            el.addEventListener('click', () => {
+              if (!env || env.state.phase !== Phase.PHASE_1) return;
+              env.step(0);
+              render();
+              onHandCardClick(hIdx);
+            });
+          }
         }
       }
     }
@@ -360,8 +376,8 @@ const PHASE_MSGS = [
 const PASS_BTN_LABELS = {
   [Phase.PHASE_1]: 'Skip',
   [Phase.PHASE_2]: 'Skip',
-  [Phase.PHASE_3]: 'Skip',
-  [Phase.PHASE_4]: 'Done',
+  [Phase.PHASE_3]: 'End Turn',
+  [Phase.PHASE_4]: 'End Turn',
 };
 
 function renderPhaseBar(phase, isPlayerTurn, state) {
@@ -703,6 +719,13 @@ async function onActionCardClick(card, player) {
       const handIdx = state.players[PLAYER_IDX].hand.indexOf(card);
       swapIntent = { card, handIdx };
       render();
+      // Click anywhere other than a belt target or the selected card deselects
+      setTimeout(() => {
+        document.addEventListener('click', function swapClickAway() {
+          document.removeEventListener('click', swapClickAway);
+          if (swapIntent) { swapIntent = null; render(); }
+        });
+      }, 0);
     } else if (choice === 'skip') {
       await onPassOrCheck(0);
     }
@@ -1680,6 +1703,7 @@ function startGame() {
   p2 = { step: 'SELECT_HAND', handIdx: null, legalBeltIdxs: new Set() };
   chefsSelectedIndices = [];
   aiThinking = false;
+  actionChoiceOverlayEl?.remove();
   actionChoice = null;
   actionChoiceOverlayEl = null;
   actionChoiceResolver = null;

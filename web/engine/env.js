@@ -403,7 +403,13 @@ export class OmakaseEnv {
       player.matchaCount++;
       player.maxHandSize++;
       const drawn = this._drawFromDeck();
-      if (drawn) player.hand.push(drawn);
+      if (drawn) {
+        player.hand.push(drawn);
+        if (!drawn.isSushi && drawn.actionCard === ActionCard.WASABI) {
+          player.wasabiSkipFlag++;
+          state.wasabiEvents.push({ type: 'draw', playerIdx });
+        }
+      }
       return true;
     }
 

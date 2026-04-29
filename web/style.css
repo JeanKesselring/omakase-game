@@ -350,7 +350,7 @@ body {
   display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px;
 }
 .drawer__set-cards img {
-  height: 88px; width: auto; flex-shrink: 0; border-radius: 2px;
+  height: 96px; width: auto; flex-shrink: 0; border-radius: 2px;
   object-fit: contain;
 }
 
@@ -642,10 +642,12 @@ body {
 .card--action  {}
 .card--passive {}
 
-/* Hover — translateY only per design system */
-.card:not(.card--disabled):not(.card--no-hover):hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-card-lift);
+/* Hover — only on true pointer devices to avoid sticky hover on mobile */
+@media (hover: hover) {
+  .card:not(.card--disabled):not(.card--no-hover):hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-lift);
+  }
 }
 
 /* States */
@@ -663,8 +665,6 @@ body {
   cursor: pointer;
 }
 .card--playable {
-  outline: 2px solid var(--peri);
-  outline-offset: 2px;
   cursor: pointer;
 }
 .card--disabled {
@@ -864,13 +864,20 @@ body {
 .drawer-bg { position: absolute; inset: 0; background: rgba(27,30,46,.45); z-index: var(--z-modal); }
 .drawer-bg[hidden] { display: none; }
 .drawer {
-  position: absolute; inset: 0;
-  background: var(--paper);
-  display: flex; flex-direction: column; padding: 16px; gap: 12px;
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: min(300px, 92vw);
+  background: rgba(251,247,236,0.88);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-left: 1px solid var(--rule);
+  display: flex; flex-direction: column; padding: 14px 16px; gap: 0;
   overflow: hidden;
 }
+.drawer__header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 10px;
+}
 .drawer__close {
-  align-self: flex-end; background: none; border: none;
+  background: none; border: none;
   color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px 8px;
 }
 .drawer__close:hover { color: var(--body); }

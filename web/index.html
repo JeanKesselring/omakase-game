@@ -288,10 +288,12 @@
     <!-- Game menu drawer -->
     <div id="menu-bg" class="drawer-bg" hidden>
       <div class="drawer" role="dialog" aria-modal="true">
-        <button id="btn-close-menu" class="drawer__close" aria-label="Close">✕</button>
+        <div class="drawer__header">
+          <button id="btn-new-game-menu" class="btn btn--salmon btn--sm">New Game</button>
+          <button id="btn-close-menu" class="drawer__close" aria-label="Close">✕</button>
+        </div>
         <div class="drawer__body">
-          <button id="btn-new-game-menu" class="btn btn--ghost">New Game</button>
-          <hr class="drawer__divider">
+          <hr class="drawer__divider" style="margin-top:0">
           <div class="drawer__sets">
             <p class="drawer__sets-title">Sets</p>
             <div class="drawer__set">
