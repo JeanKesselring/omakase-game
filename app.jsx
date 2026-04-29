@@ -1,163 +1,125 @@
-// app.jsx — Omakase landing (minimal)
-// Only the essentials: heading, opponent picker, rules link, tutorial, play CTA.
+// app.jsx — Omakase landing
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "accent": "#E4525A",
   "startUrl": "game.html",
   "youtubeId": "dQw4w9WgXcQ",
-  "rulesUrl": "uploads/RulesV.2.pdf"
+  "shopUrl": "https://omakasegame.com"
 } /*EDITMODE-END*/;
 
+// IS-MCTS+ only — three difficulty tiers by simulation budget
 const OPPONENTS = [
-{ id: 'apprentice', name: 'The Apprentice', jp: '見習い', tab: 'nori', difficulty: 1, model: 'Haiku' },
-{ id: 'belt-watcher', name: 'The Belt Watcher', jp: '回し手', tab: 'peri', difficulty: 2, model: 'Haiku' },
-{ id: 'set-collector', name: 'The Set Collector', jp: '揃え屋', tab: 'mustard', difficulty: 3, model: 'Sonnet' },
-{ id: 'shoyu-shark', name: 'The Shoyu Shark', jp: '醤油鮫', tab: 'salmon', difficulty: 4, model: 'Opus' }];
+  { id: 'easy',     name: 'Easy',     jp: '初',  difficulty: 1, sims: 500  },
+  { id: 'advanced', name: 'Advanced', jp: '中',  difficulty: 2, sims: 2000 },
+  { id: 'expert',   name: 'Expert',   jp: '達',  difficulty: 3, sims: 6000 },
+];
 
-
-function JpTab({ children, kind = '' }) {
-  return <span className={`jp-tab ${kind}`}>{children}</span>;
-}
-
-function DifficultyDots({ level }) {
+function DifficultyDots({ level, max = 3 }) {
   return (
-    <span style={{ display: 'inline-flex', gap: 4 }}>
-      {[1, 2, 3, 4, 5].map((i) =>
-      <span key={i} style={{
-        width: 6, height: 6, borderRadius: '50%',
-        background: i <= level ? 'var(--salmon)' : 'rgba(27,30,46,0.18)'
-      }} />
+    <span style={{ display: 'inline-flex', gap: 5 }}>
+      {Array.from({ length: max }, (_, i) =>
+        <span key={i} style={{
+          width: 7, height: 7, borderRadius: '50%',
+          background: i < level ? 'var(--salmon)' : 'rgba(27,30,46,0.15)'
+        }} />
       )}
-    </span>);
-
+    </span>
+  );
 }
 
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [selected, setSelected] = React.useState('belt-watcher');
+  const [selected, setSelected] = React.useState('advanced');
 
   React.useEffect(() => {
     document.documentElement.style.setProperty('--salmon', t.accent);
   }, [t.accent]);
 
   const handleStart = React.useCallback(() => {
-    const url = `${t.startUrl}?opponent=${selected}`;
+    const op = OPPONENTS.find(o => o.id === selected);
+    const url = `${t.startUrl}?opponent=${selected}&sims=${op.sims}`;
     if (t.startUrl && t.startUrl !== 'game.html') {
       window.location.href = url;
     } else {
-      const op = OPPONENTS.find((o) => o.id === selected);
-      alert(`Starting match against ${op?.name}\n→ ${url}`);
+      alert(`Starting match vs. ${op?.name} (${op?.sims} sims)\n→ ${url}`);
     }
   }, [t.startUrl, selected]);
 
-  const sel = OPPONENTS.find((o) => o.id === selected);
-
   return (
-    <main style={{
-      maxWidth: 880, margin: '0 auto', padding: '64px 32px 80px'
-    }}>
-      {/* Heading */}
-      <header style={{
-        display: 'flex', alignItems: 'center', gap: 14, marginBottom: 56
-      }}>
-        <img src="assets/logo.png" alt="" style={{
-          width: 44, height: 44, objectFit: 'contain', display: 'block'
-        }} />
-        <div>
-          <div style={{
-            fontSize: 12, fontWeight: 700, letterSpacing: '0.28em',
-            color: 'var(--ink)'
-          }}>OMAKASE<span style={{ color: 'var(--salmon)' }}></span></div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>A sushi card game · 2–4 players · 30 min
+    <main style={{ maxWidth: 880, margin: '0 auto', padding: '64px 32px 80px' }}>
 
+      {/* Header */}
+      <header style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 56 }}>
+        <img src="cards/favicon.png" alt="" style={{ width: 44, height: 44, objectFit: 'contain', display: 'block' }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.28em', color: 'var(--ink)' }}>OMAKASE</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+            Select, swap, sabotage
+            <span style={{ margin: '0 8px', opacity: 0.4 }}>·</span>
+            <a href={t.shopUrl} target="_blank" rel="noreferrer" style={{
+              color: 'var(--salmon)', fontWeight: 600, textDecoration: 'none',
+              borderBottom: '1px solid currentColor', paddingBottom: 1
+            }}>Get the physical game →</a>
           </div>
         </div>
       </header>
 
       {/* Title */}
       <h1 style={{
-        fontSize: 'clamp(56px, 9vw, 104px)',
-        lineHeight: 0.95, letterSpacing: '-0.04em', fontWeight: 800,
-        marginBottom: 20, color: "rgb(0, 0, 0)"
+        fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+        fontSize: 'clamp(72px, 12vw, 128px)',
+        lineHeight: 0.9, letterSpacing: '-0.04em', fontWeight: 900,
+        marginBottom: 40, color: 'var(--ink)'
       }}>
-        Oma<span style={{ color: "rgb(0, 0, 0)" }}>k</span>ase<span style={{ color: 'var(--salmon)' }}></span>
+        Omakase
       </h1>
-      <p style={{
-        fontSize: 18, lineHeight: 1.5, color: 'var(--body)',
-        maxWidth: 560, marginBottom: 40
-      }}>
-        Collect sushi off the conveyor belt. Build the Omakase Set for ¥6,000 — or get there first and call the check.
-      </p>
+
+      {/* Play CTA — above opponent picker */}
+      <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', marginBottom: 32 }}>
+        <button className="btn btn-salmon btn-lg" onClick={handleStart}>
+          Play <span style={{ fontSize: 18 }}>→</span>
+        </button>
+        <a className="btn btn-ghost btn-lg" href="https://omakasegame.com/pages/rules" target="_blank" rel="noreferrer">
+          Rules &amp; sets
+        </a>
+      </div>
 
       {/* Opponent picker */}
-      <section style={{ marginBottom: 32 }}>
+      <section style={{ marginBottom: 64 }}>
         <div style={{
-          fontSize: 11, fontWeight: 700, letterSpacing: '0.22em',
-          textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 14
-        }}>Opponent</div>
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 1, background: 'var(--rule)',
-          border: '1px solid var(--rule)'
+          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 1, background: 'var(--rule)', border: '1px solid var(--rule)'
         }}>
-          {OPPONENTS.map((op) => {
+          {OPPONENTS.map(op => {
             const active = op.id === selected;
             return (
-              <button key={op.id}
-              onClick={() => setSelected(op.id)}
-              style={{
-                position: 'relative',
-                textAlign: 'left',
+              <button key={op.id} onClick={() => setSelected(op.id)} style={{
+                position: 'relative', textAlign: 'left',
                 background: active ? 'var(--cream-soft)' : 'var(--paper)',
-                border: 0, padding: '18px 16px',
+                border: 0, padding: '20px 18px',
                 fontFamily: 'inherit', color: 'inherit', cursor: 'pointer',
-                display: 'flex', flexDirection: 'column', gap: 10, minHeight: 150
+                display: 'flex', flexDirection: 'column', gap: 12
               }}>
-                {active &&
-                <div style={{
+                {active && <div style={{
                   position: 'absolute', top: 0, left: 0, right: 0, height: 3,
                   background: 'var(--salmon)'
-                }} />
-                }
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <JpTab kind={op.tab}>{op.jp.charAt(0)}</JpTab>
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, letterSpacing: '0.18em',
-                    color: 'var(--muted)', textTransform: 'uppercase'
-                  }}>{op.model}</span>
-                </div>
-                <div style={{
-                  fontFamily: "'Hiragino Mincho ProN', serif",
-                  fontSize: 22, color: 'var(--peri-deep)', lineHeight: 1
-                }}>{op.jp}</div>
-                <div style={{ marginTop: 'auto' }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
-                    {op.name}
-                  </div>
-                  <div style={{ marginTop: 6 }}>
-                    <DifficultyDots level={op.difficulty} />
-                  </div>
-                </div>
-              </button>);
+                }} />}
 
+                <div style={{ marginTop: 'auto' }}>
+                  <div style={{
+                    fontFamily: "'Hiragino Mincho ProN', serif",
+                    fontSize: 20, color: 'var(--peri-deep)', lineHeight: 1, marginBottom: 6
+                  }}>{op.jp}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>{op.name}</div>
+                  <DifficultyDots level={op.difficulty} max={3} />
+                </div>
+              </button>
+            );
           })}
         </div>
       </section>
 
-      {/* Play CTA + rules link */}
-      <div style={{
-        display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap',
-        marginBottom: 64
-      }}>
-        <button className="btn btn-salmon btn-lg" onClick={handleStart}>
-          Play vs. {sel.name} <span style={{ fontSize: 18 }}>→</span>
-        </button>
-        <a className="btn btn-ghost btn-lg" href={t.rulesUrl} target="_blank" rel="noreferrer">
-          Read the rules
-        </a>
-      </div>
-
-      {/* Tutorial */}
+{/* Tutorial */}
       <section>
         <div style={{
           fontSize: 11, fontWeight: 700, letterSpacing: '0.22em',
@@ -165,8 +127,7 @@ function App() {
         }}>Tutorial</div>
         <div style={{
           position: 'relative', aspectRatio: '16 / 9',
-          background: '#000', overflow: 'hidden',
-          border: '1px solid var(--ink)'
+          background: '#000', overflow: 'hidden', border: '1px solid var(--ink)'
         }}>
           <iframe
             src={`https://www.youtube-nocookie.com/embed/${t.youtubeId}?rel=0&modestbranding=1`}
@@ -174,24 +135,19 @@ function App() {
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }} />
-          
         </div>
       </section>
 
       <TweaksPanel title="Tweaks">
         <TweakSection label="Theme" />
-        <TweakColor label="Accent" value={t.accent}
-        onChange={(v) => setTweak('accent', v)} />
+        <TweakColor label="Accent" value={t.accent} onChange={(v) => setTweak('accent', v)} />
         <TweakSection label="Links" />
-        <TweakText label="Start URL" value={t.startUrl}
-        onChange={(v) => setTweak('startUrl', v)} />
-        <TweakText label="Rules URL" value={t.rulesUrl}
-        onChange={(v) => setTweak('rulesUrl', v)} />
-        <TweakText label="YouTube ID" value={t.youtubeId}
-        onChange={(v) => setTweak('youtubeId', v)} />
+        <TweakText label="Start URL" value={t.startUrl} onChange={(v) => setTweak('startUrl', v)} />
+        <TweakText label="Shop URL" value={t.shopUrl} onChange={(v) => setTweak('shopUrl', v)} />
+        <TweakText label="YouTube ID" value={t.youtubeId} onChange={(v) => setTweak('youtubeId', v)} />
       </TweaksPanel>
-    </main>);
-
+    </main>
+  );
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);

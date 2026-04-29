@@ -19,136 +19,76 @@
 
     <main class="landing-page">
 
-      <!-- Header: logo · brand · tagline -->
+      <!-- Header: logo · brand · tagline · shop link -->
       <header class="landing-header">
         <img src="../cards/favicon.png" alt="" class="landing-logo-img">
         <div>
           <div class="landing-brand">OMAKASE</div>
-          <div class="landing-tagline">A sushi card game · 2–4 players · 30 min</div>
+          <div class="landing-tagline">
+            Select, swap, sabotage
+            <span class="landing-tagline-sep">·</span>
+            <a href="https://omakasegame.com/" class="landing-shop-link" target="_blank" rel="noopener">Get the physical game →</a>
+          </div>
         </div>
       </header>
 
-      <!-- Display title + description -->
-      <h1 class="landing-title">Omakase</h1>
-      <p class="landing-desc">Collect sushi off the conveyor belt. Build the Omakase Set for ¥6,000 — or get there first and call the check.</p>
+      <!-- Big title -->
+      <h1 class="landing-title landing-title--sans">Omakase</h1>
 
-      <!-- Opponent picker -->
-      <p class="landing-section-label">Opponent</p>
-      <div class="agent-grid" role="radiogroup">
+      <!-- CTA row — ABOVE opponent picker -->
+      <div class="landing-cta">
+        <button id="btn-start" class="btn btn--salmon btn--lg">Play →</button>
+        <a href="https://omakasegame.com/pages/rules" class="btn btn--ghost btn--lg" target="_blank" rel="noopener">Rules &amp; Sets</a>
+      </div>
 
-        <button class="agent-card agent-card--active" data-agent="greedy" role="radio" aria-checked="true">
-          <div class="agent-card__top">
-            <span class="jp-tab jp-tab--nori">欲</span>
-            <span class="agent-card__diff diff--beginner">Beginner</span>
-          </div>
-          <div class="agent-card__jp">欲張り</div>
+      <!-- Opponent picker: IS-MCTS+ only, three difficulty tiers -->
+      <div class="agent-grid agent-grid--3" role="radiogroup">
+
+        <button class="agent-card" data-agent="mcts2" data-sims="500" role="radio" aria-checked="false">
+          <div class="agent-card__jp">初</div>
           <div class="agent-card__footer">
-            <div class="agent-card__name">Greedy</div>
-            <div class="agent-card__dots">
-              <span class="diff-dot diff-dot--on"></span>
-              <span class="diff-dot"></span>
-              <span class="diff-dot"></span>
-              <span class="diff-dot"></span>
+            <div class="agent-card__name">Easy</div>
+            <div class="agent-card__meta">
+              <div class="agent-card__dots">
+                <span class="diff-dot diff-dot--on"></span>
+                <span class="diff-dot"></span>
+                <span class="diff-dot"></span>
+              </div>
             </div>
           </div>
         </button>
 
-        <button class="agent-card" data-agent="random" role="radio" aria-checked="false">
-          <div class="agent-card__top">
-            <span class="jp-tab jp-tab--peri">運</span>
-            <span class="agent-card__diff diff--unranked">Unranked</span>
-          </div>
-          <div class="agent-card__jp">運任せ</div>
+        <button class="agent-card agent-card--active" data-agent="mcts2" data-sims="2000" role="radio" aria-checked="true">
+          <div class="agent-card__jp">中</div>
           <div class="agent-card__footer">
-            <div class="agent-card__name">Random</div>
-            <div class="agent-card__dots">
-              <span class="diff-dot"></span>
-              <span class="diff-dot"></span>
-              <span class="diff-dot"></span>
-              <span class="diff-dot"></span>
+            <div class="agent-card__name">Advanced</div>
+            <div class="agent-card__meta">
+              <div class="agent-card__dots">
+                <span class="diff-dot diff-dot--on"></span>
+                <span class="diff-dot diff-dot--on"></span>
+                <span class="diff-dot"></span>
+              </div>
             </div>
           </div>
         </button>
 
-        <button class="agent-card" data-agent="mcts" role="radio" aria-checked="false">
-          <div class="agent-card__top">
-            <span class="jp-tab jp-tab--mustard">読</span>
-            <span class="agent-card__diff diff--expert">Expert</span>
-          </div>
-          <div class="agent-card__jp">先読み</div>
+        <button class="agent-card" data-agent="mcts2" data-sims="6000" role="radio" aria-checked="false">
+          <div class="agent-card__jp">達</div>
           <div class="agent-card__footer">
-            <div class="agent-card__name">IS-MCTS</div>
-            <div class="agent-card__dots">
-              <span class="diff-dot diff-dot--on"></span>
-              <span class="diff-dot diff-dot--on"></span>
-              <span class="diff-dot diff-dot--on"></span>
-              <span class="diff-dot"></span>
-            </div>
-          </div>
-        </button>
-
-        <button class="agent-card" data-agent="mcts2" role="radio" aria-checked="false">
-          <div class="agent-card__top">
-            <span class="jp-tab jp-tab--salmon">謀</span>
-            <span class="agent-card__diff diff--expert">Expert+</span>
-          </div>
-          <div class="agent-card__jp">深謀</div>
-          <div class="agent-card__footer">
-            <div class="agent-card__name">IS-MCTS+</div>
-            <div class="agent-card__dots">
-              <span class="diff-dot diff-dot--on"></span>
-              <span class="diff-dot diff-dot--on"></span>
-              <span class="diff-dot diff-dot--on"></span>
-              <span class="diff-dot diff-dot--on"></span>
+            <div class="agent-card__name">Expert</div>
+            <div class="agent-card__meta">
+              <div class="agent-card__dots">
+                <span class="diff-dot diff-dot--on"></span>
+                <span class="diff-dot diff-dot--on"></span>
+                <span class="diff-dot diff-dot--on"></span>
+              </div>
             </div>
           </div>
         </button>
 
       </div><!-- /agent-grid -->
 
-      <!-- MCTS sim count (shown for IS-MCTS agents) -->
-      <div id="mcts-options" class="mcts-options" style="display:none">
-        <label class="newgame__label" for="mcts-sims">Simulations per move</label>
-        <div class="slider-row">
-          <input type="range" id="mcts-sims" min="100" max="2000" value="500" step="100">
-          <span id="mcts-sims-val" class="slider-val">500</span>
-        </div>
-      </div>
-
-      <!-- CTA row -->
-      <div class="landing-cta">
-        <button id="btn-start" class="btn btn--salmon btn--lg">
-          Begin Service →
-        </button>
-        <button id="btn-rules-toggle" class="btn btn--ghost btn--lg">
-          Rules &amp; Sets ▾
-        </button>
-      </div>
-
-      <!-- Rules panel (toggled) -->
-      <div id="rules-panel" class="rules-panel" hidden>
-        <div class="rules-sets">
-          <div class="rules-set">
-            <div class="rules-set__header"><strong>Omakase Set</strong><span class="jp-tab jp-tab--salmon">¥6,000</span></div>
-            Fatty Tuna · Conger Eel · Crab · Tuna · Salmon · Salmon Roe
-          </div>
-          <div class="rules-set">
-            <div class="rules-set__header"><strong>Sakura Set</strong><span class="jp-tab jp-tab--peri">¥4,500</span></div>
-            Conger Eel · Crab · Tuna · Shrimp · Tuna Roll · Salmon Roll
-          </div>
-          <div class="rules-set">
-            <div class="rules-set__header"><strong>Ume Set</strong><span class="jp-tab jp-tab--nori">¥3,500</span></div>
-            Salmon Roe · Salmon · Shrimp · Tuna Roll · Salmon Roll · Omelette
-          </div>
-          <div class="rules-set">
-            <div class="rules-set__header"><strong>Kids Set</strong><span class="jp-tab jp-tab--mustard">¥2,000</span></div>
-            Omelette · Cucumber Roll · Tofu · Karaage
-          </div>
-        </div>
-        <p class="rules-note">Each turn: (1) optionally play an action card, (2) swap a hand card with the belt, (3) optionally play an action card, (4) optionally call Check. Call Check when you have a complete set to end the game.</p>
-      </div>
-
-      <!-- Tutorial video -->
+<!-- Tutorial video -->
       <p class="landing-section-label" style="margin-top:52px">Tutorial</p>
       <div class="landing-video">
         <iframe
@@ -157,11 +97,6 @@
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen></iframe>
       </div>
-
-      <!-- Shop link -->
-      <p class="landing-shop">
-        <a href="https://omakasegame.com/" class="link-arrow" target="_blank" rel="noopener">Buy the physical game ↗</a>
-      </p>
 
     </main>
   </div>
@@ -301,11 +236,11 @@
 
     <!-- Chef's Choice modal (position selection) -->
     <div id="chefs-pos-modal-bg" class="modal-bg" hidden>
-      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="chefs-pos-modal-title">
+      <div class="modal modal--chefs-pos" role="dialog" aria-modal="true" aria-labelledby="chefs-pos-modal-title">
         <h2 id="chefs-pos-modal-title" class="modal__title">Place Cards in Deck</h2>
         <p id="chefs-pos-modal-instr" class="modal__instr">Choose where each card goes in the deck</p>
         <div id="chefs-pos-modal-body" class="chefs-pos-body"></div>
-        <div class="modal__footer">
+        <div class="modal__footer modal__footer--right">
           <button id="btn-chefs-pos-confirm" class="btn btn--primary">Confirm</button>
         </div>
       </div>
@@ -360,20 +295,46 @@
           <div class="drawer__sets">
             <p class="drawer__sets-title">Sets</p>
             <div class="drawer__set">
-              <strong>Omakase <span class="jp-tab jp-tab--salmon">¥6,000</span></strong>
-              <span>Fatty Tuna · Conger Eel · Crab · Tuna · Salmon · Salmon Roe</span>
+              <div class="drawer__set-header"><strong>Omakase</strong><span class="drawer__set-price">¥6,000</span></div>
+              <div class="drawer__set-cards">
+                <img src="../cards/fatty_tuna.png" alt="Fatty Tuna" title="Fatty Tuna">
+                <img src="../cards/conger_eel.png" alt="Conger Eel" title="Conger Eel">
+                <img src="../cards/crab.png" alt="Crab" title="Crab">
+                <img src="../cards/tuna.png" alt="Tuna" title="Tuna">
+                <img src="../cards/salmon.png" alt="Salmon" title="Salmon">
+                <img src="../cards/salmon_roe.png" alt="Salmon Roe" title="Salmon Roe">
+              </div>
             </div>
             <div class="drawer__set">
-              <strong>Sakura <span class="jp-tab jp-tab--peri">¥4,500</span></strong>
-              <span>Conger Eel · Crab · Tuna · Shrimp · Tuna Roll · Salmon Roll</span>
+              <div class="drawer__set-header"><strong>Sakura</strong><span class="drawer__set-price">¥4,500</span></div>
+              <div class="drawer__set-cards">
+                <img src="../cards/conger_eel.png" alt="Conger Eel" title="Conger Eel">
+                <img src="../cards/crab.png" alt="Crab" title="Crab">
+                <img src="../cards/tuna.png" alt="Tuna" title="Tuna">
+                <img src="../cards/shrimp.png" alt="Shrimp" title="Shrimp">
+                <img src="../cards/tuna_roll.png" alt="Tuna Roll" title="Tuna Roll">
+                <img src="../cards/salmon_roll.png" alt="Salmon Roll" title="Salmon Roll">
+              </div>
             </div>
             <div class="drawer__set">
-              <strong>Ume <span class="jp-tab jp-tab--nori">¥3,500</span></strong>
-              <span>Salmon Roe · Salmon · Shrimp · Tuna Roll · Salmon Roll · Omelette</span>
+              <div class="drawer__set-header"><strong>Ume</strong><span class="drawer__set-price">¥3,500</span></div>
+              <div class="drawer__set-cards">
+                <img src="../cards/salmon_roe.png" alt="Salmon Roe" title="Salmon Roe">
+                <img src="../cards/salmon.png" alt="Salmon" title="Salmon">
+                <img src="../cards/shrimp.png" alt="Shrimp" title="Shrimp">
+                <img src="../cards/tuna_roll.png" alt="Tuna Roll" title="Tuna Roll">
+                <img src="../cards/salmon_roll.png" alt="Salmon Roll" title="Salmon Roll">
+                <img src="../cards/omelette.png" alt="Omelette" title="Omelette">
+              </div>
             </div>
             <div class="drawer__set">
-              <strong>Kids <span class="jp-tab jp-tab--mustard">¥2,000</span></strong>
-              <span>Omelette · Cucumber Roll · Tofu · Karaage</span>
+              <div class="drawer__set-header"><strong>Kids</strong><span class="drawer__set-price">¥2,000</span></div>
+              <div class="drawer__set-cards">
+                <img src="../cards/omelette.png" alt="Omelette" title="Omelette">
+                <img src="../cards/cucumber_roll.png" alt="Cucumber Roll" title="Cucumber Roll">
+                <img src="../cards/tofu.png" alt="Tofu" title="Tofu">
+                <img src="../cards/Karaage.png" alt="Karaage" title="Karaage">
+              </div>
             </div>
           </div>
           <hr class="drawer__divider">

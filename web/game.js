@@ -25,8 +25,8 @@ const ACTION_EFFECTS = {
 
 // ── Game state ────────────────────────────────────────────────────────────────
 let env = null;
-let selectedAgent = 'greedy';
-let mctsNSims = 500;
+let selectedAgent = 'mcts2';
+let mctsNSims = 2000;
 let agent = null;
 let mctsWorker = null;
 let aiThinking = false;
@@ -42,8 +42,16 @@ const lastScores = { [PLAYER_IDX]: -1, [AI_IDX]: -1 };
 let _lastPhaseMsg = '';
 let _lastPhase = -1;
 
-// Two-step action card confirmation
-let pendingActionCard = null;
+// Action card chooser overlay state
+let actionChoice = null; // { card, phase }
+let actionChoiceOverlayEl = null;
+let actionChoiceResolver = null;
+
+// Phase 1 swap-intent: card selected for swap before popup confirmation
+let swapIntent = null; // { card, handIdx } | null
+
+// Phase 3 card selection: first click selects, second click plays
+let phase3Selection = null; // { card } | null
 
 // Belt deal animation state
 let beltDealIn = null;      // card object that just entered belt[0]
@@ -207,11 +215,16 @@ function renderBelt(state, isPlayerTurn, phase) {
   const beltEl = $('belt-slots');
   beltEl.innerHTML = '';
 
-  const showTargets = isPlayerTurn && phase === Phase.PHASE_2 && p2.step === 'SELECT_BELT';
+  const showTargets = isPlayerTurn && (
+    (phase === Phase.PHASE_2 && p2.step === 'SELECT_BELT') ||
+    (phase === Phase.PHASE_1 && swapIntent != null)
+  );
   const animEntry = beltDealIn != null || beltDealAnimating;
 
   state.conveyorBelt.forEach((card, bIdx) => {
-    const isTarget = showTargets && p2.legalBeltIdxs.has(bIdx);
+    const isTarget = showTargets && (
+      phase === Phase.PHASE_2 ? p2.legalBeltIdxs.has(bIdx) : true
+    );
     const cardEl = makeCardEl(card, { validTarget: isTarget });
 
     if (animEntry) {
@@ -227,7 +240,11 @@ function renderBelt(state, isPlayerTurn, phase) {
 
     if (isTarget) {
       cardEl.style.cursor = 'pointer';
-      cardEl.addEventListener('click', () => onBeltCardClick(bIdx));
+      if (swapIntent) {
+        cardEl.addEventListener('click', () => onBeltCardClickWithSwapIntent(bIdx));
+      } else {
+        cardEl.addEventListener('click', () => onBeltCardClick(bIdx));
+      }
     }
 
     const slot = document.createElement('div');
@@ -282,15 +299,18 @@ function renderPlayerHand(player, state, isPlayerTurn, phase) {
       if (!card.isSushi && !PASSIVE_ACTION_CARDS.has(card.actionCard)) {
         const idx = playable.indexOf(card);
         isPlayable = idx >= 0 && legalActions.includes(idx + 1);
-        if (pendingActionCard === card) {
-          // This card is pending confirmation — show gold-highlighted, still clickable
-          isPlayable = true;
-          disabled   = false;
-        } else if (pendingActionCard !== null) {
-          // Another card is pending — dim everything else
-          disabled = true;
+        if (phase === Phase.PHASE_3) {
+          selected = phase3Selection?.card === card;
+          disabled = phase3Selection ? (!selected && !isPlayable) : !isPlayable;
         } else {
-          disabled = !isPlayable;
+          // Phase 1
+          selected = (actionChoice?.card === card) || (swapIntent?.card === card);
+          if (swapIntent) {
+            // All non-passive action cards stay enabled so player can change strategy
+            disabled = false;
+          } else {
+            disabled = actionChoice ? !selected : !isPlayable;
+          }
         }
       } else {
         disabled = true;
@@ -299,9 +319,7 @@ function renderPlayerHand(player, state, isPlayerTurn, phase) {
       disabled = !isPlayerTurn;
     }
 
-    const isPending = pendingActionCard === card;
-    const el = makeCardEl(card, { selected, playable: isPlayable && !isPending, disabled });
-    if (isPending) el.classList.add('card--pending');
+    const el = makeCardEl(card, { selected, playable: isPlayable, disabled });
 
     if (isPlayerTurn) {
       if (phase === Phase.PHASE_2 && p2.step === 'SELECT_HAND' && !disabled) {
@@ -310,9 +328,21 @@ function renderPlayerHand(player, state, isPlayerTurn, phase) {
       } else if (phase === Phase.PHASE_2 && p2.step === 'SELECT_BELT' && selected) {
         el.style.cursor = 'pointer';
         el.addEventListener('click', onHandCardDeselect);
-      } else if ((phase === Phase.PHASE_1 || phase === Phase.PHASE_3) && (isPlayable || isPending)) {
+      } else if (phase === Phase.PHASE_3 && isPlayable) {
         el.style.cursor = 'pointer';
-        el.addEventListener('click', () => onActionCardClick(card, player));
+        if (phase3Selection?.card === card) {
+          el.addEventListener('click', () => onActionCardPlayDirect(card, player));
+        } else {
+          el.addEventListener('click', () => { phase3Selection = { card }; render(); });
+        }
+      } else if (phase === Phase.PHASE_1) {
+        if (swapIntent?.card === card) {
+          el.style.cursor = 'pointer';
+          el.addEventListener('click', () => { swapIntent = null; render(); });
+        } else if (!actionChoice) {
+          el.style.cursor = 'pointer';
+          el.addEventListener('click', () => { swapIntent = null; onActionCardClick(card, player); });
+        }
       }
     }
 
@@ -350,9 +380,18 @@ function renderPhaseBar(phase, isPlayerTurn, state) {
   _lastPhase = displayPhase;
 
   let msg = '', highlight = false;
-  if (pendingActionCard && isPlayerTurn && (phase === Phase.PHASE_1 || phase === Phase.PHASE_3)) {
-    const n = cardName(pendingActionCard);
-    msg = `Play ${CARD_DISPLAY_NAMES[n] ?? n}? Click again to confirm, or Skip to cancel`;
+  if (swapIntent && isPlayerTurn && phase === Phase.PHASE_1) {
+    const n = cardName(swapIntent.card);
+    msg = `${CARD_DISPLAY_NAMES[n] ?? n}: select a belt card to swap`;
+    highlight = true;
+  } else if (phase3Selection && isPlayerTurn && phase === Phase.PHASE_3) {
+    const n = cardName(phase3Selection.card);
+    msg = `${CARD_DISPLAY_NAMES[n] ?? n}: click again to play`;
+    highlight = true;
+  } else if (actionChoice && isPlayerTurn && (phase === Phase.PHASE_1 || phase === Phase.PHASE_3)) {
+    const n = cardName(actionChoice.card);
+    const secondary = phase === Phase.PHASE_1 ? 'Swap' : 'Skip';
+    msg = `${CARD_DISPLAY_NAMES[n] ?? n}: choose Play or ${secondary}`;
     highlight = true;
   } else if (phase === Phase.CHEFS_CHOICE_SELECT_CARDS || phase === Phase.CHEFS_CHOICE_SELECT_POSITIONS) {
     msg = isPlayerTurn ? "Chef's Choice — pick 2 cards to return" : "Opponent using Chef's Choice…";
@@ -376,18 +415,109 @@ function renderControls(isPlayerTurn, phase) {
   const canPass  = isPlayerTurn && (phase === Phase.PHASE_1 || phase === Phase.PHASE_3 || phase === Phase.PHASE_4);
   const canCheck = isPlayerTurn && phase === Phase.PHASE_4 && (env?.getLegalActions().includes(1) ?? false);
 
-  passBtn.disabled  = !canPass;
-  checkBtn.disabled = !canCheck;
+  passBtn.disabled  = !canPass || !!actionChoice || !!swapIntent;
+  checkBtn.disabled = !canCheck || !!actionChoice || !!swapIntent;
   checkBtn.classList.toggle('btn--check-avail', canCheck);
 
-  // Dynamic label — "Cancel" overrides when an action card is pending
+  // Dynamic label
   if (canPass) {
-    if (pendingActionCard && (phase === Phase.PHASE_1 || phase === Phase.PHASE_3)) {
-      passBtn.textContent = 'Cancel';
-    } else {
-      passBtn.textContent = PASS_BTN_LABELS[phase] ?? 'Pass';
-    }
+    passBtn.textContent = PASS_BTN_LABELS[phase] ?? 'Pass';
   }
+}
+
+function showActionChoiceOverlay(card, phase) {
+  if (actionChoiceOverlayEl) closeActionChoiceOverlay('cancel', true);
+
+  actionChoice = { card, phase };
+  render();
+
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'action-choice-overlay';
+
+    const panel = document.createElement('div');
+    panel.className = 'action-choice-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+
+    const title = document.createElement('h3');
+    title.className = 'action-choice-title';
+    const name = cardName(card);
+    title.textContent = CARD_DISPLAY_NAMES[name] ?? name;
+
+    const desc = document.createElement('p');
+    desc.className = 'action-choice-desc';
+    const secondaryLabel = phase === Phase.PHASE_1 ? 'Swap' : 'Skip';
+    desc.textContent = phase === Phase.PHASE_1
+      ? `Play this action now, or mark it for swap.`
+      : `Play this action now, or skip this action phase.`;
+
+    const cardWrap = document.createElement('div');
+    cardWrap.className = 'action-choice-card';
+    const img = document.createElement('img');
+    img.src = cardImg(name);
+    img.alt = CARD_DISPLAY_NAMES[name] ?? name;
+    img.onerror = () => { img.style.visibility = 'hidden'; };
+    cardWrap.appendChild(img);
+
+    const actions = document.createElement('div');
+    actions.className = 'action-choice-actions';
+    const playBtn = document.createElement('button');
+    playBtn.className = 'btn btn--salmon';
+    playBtn.textContent = 'Play';
+    const secondaryBtn = document.createElement('button');
+    secondaryBtn.className = 'btn btn--secondary';
+    secondaryBtn.textContent = secondaryLabel;
+    actions.append(playBtn, secondaryBtn);
+
+    panel.append(title, desc, cardWrap, actions);
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+
+    const onKeydown = e => {
+      if (e.key === 'Escape') closeActionChoiceOverlay('cancel');
+    };
+
+    playBtn.addEventListener('click', () => closeActionChoiceOverlay('play'));
+    secondaryBtn.addEventListener('click', () => closeActionChoiceOverlay(phase === Phase.PHASE_1 ? 'exchange' : 'skip'));
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) closeActionChoiceOverlay('cancel');
+    });
+    document.addEventListener('keydown', onKeydown);
+
+    actionChoiceOverlayEl = overlay;
+    actionChoiceResolver = result => {
+      document.removeEventListener('keydown', onKeydown);
+      resolve(result);
+    };
+  });
+}
+
+function closeActionChoiceOverlay(result = 'cancel', immediate = false) {
+  if (!actionChoiceOverlayEl) {
+    actionChoice = null;
+    return;
+  }
+
+  const overlay = actionChoiceOverlayEl;
+  const resolver = actionChoiceResolver;
+  actionChoiceOverlayEl = null;
+  actionChoiceResolver = null;
+
+  const finish = () => {
+    overlay.remove();
+    actionChoice = null;
+    render();
+    resolver?.(result);
+  };
+
+  if (immediate) {
+    finish();
+    return;
+  }
+
+  overlay.classList.add('action-choice-overlay--out');
+  setTimeout(finish, 220);
 }
 
 // ── Phase 2 handlers ──────────────────────────────────────────────────────────
@@ -442,6 +572,117 @@ function onBeltCardClick(bIdx) {
   handEl && beltEl ? animateSwap(handEl, beltEl, afterSwap) : afterSwap();
 }
 
+// Belt card clicked while player has a swap intent (phase 1 → skip to swap)
+function onBeltCardClickWithSwapIntent(bIdx) {
+  if (!env || !swapIntent) return;
+  const { state } = env;
+  if (state.currentPlayer !== PLAYER_IDX || state.phase !== Phase.PHASE_1) return;
+
+  const { handIdx } = swapIntent;
+  swapIntent = null;
+
+  // Grab DOM elements BEFORE phase transition — hand & belt are the same in phase 2
+  const handCards = document.querySelectorAll('#player-hand .card');
+  const beltCards = document.querySelectorAll('#belt-slots .card');
+  const handEl = handCards[handIdx];
+  const beltEl = beltCards[bIdx];
+
+  // Skip phase 1 (action = 0)
+  env.step(0);
+  if (env.state.gameOver) { endGame(); return; }
+
+  // Drain any wasabi events from the phase 1 skip (shouldn't happen but be safe)
+  // Now in phase 2 — execute the swap
+  const action = handIdx * MAX_BELT_SIZE + bIdx;
+  p2 = { step: 'SELECT_HAND', handIdx: null, legalBeltIdxs: new Set() };
+
+  const afterSwap = () => {
+    env.step(action);
+    if (env.state.gameOver) { endGame(); return; }
+    if (env.state.phase === Phase.PHASE_DISCARD && env.state.currentPlayer === PLAYER_IDX) {
+      render(); showDiscardModal(); return;
+    }
+    render();
+    postRenderCheck();
+    scheduleTurn();
+  };
+
+  handEl && beltEl ? animateSwap(handEl, beltEl, afterSwap) : afterSwap();
+}
+
+// Phase 3: play action card directly (no popup — already selected by first click)
+async function onActionCardPlayDirect(card, player) {
+  if (!env) return;
+  const { state } = env;
+  if (state.currentPlayer !== PLAYER_IDX || state.phase !== Phase.PHASE_3) return;
+
+  phase3Selection = null;
+
+  const playable = player.hand.filter(c => !c.isSushi && !PASSIVE_ACTION_CARDS.has(c.actionCard));
+  const idx = playable.indexOf(card);
+  if (idx < 0) return;
+  const action = idx + 1;
+  if (!env.getLegalActions().includes(action)) return;
+
+  const name = cardName(card);
+  await playActionCardAnimation(name, CARD_DISPLAY_NAMES[name] ?? name);
+
+  const oppPlayer = state.players[AI_IDX];
+  const oppHasCards = !oppPlayer.checkProtected && oppPlayer.hand.length > 0;
+
+  if (name === 'chopsticks' && oppHasCards) {
+    const victimIdx = await showPickOppCardModal(
+      'Steal a Card',
+      "Choose a face-down card from opponent's hand",
+      oppPlayer.hand.length
+    );
+    if (victimIdx !== null) env._nextActionChoices = { victimCardIdx: victimIdx };
+  }
+
+  if (name === 'sake' && oppHasCards) {
+    const victimIdx = await showPickOppCardModal(
+      'Take a Card',
+      "Choose a card to take from opponent (face-down)",
+      oppPlayer.hand.length
+    );
+    const handForReturn = state.players[PLAYER_IDX].hand.filter(
+      c => !(!c.isSushi && c.actionCard === 'sake')
+    );
+    const returnIdx = await showSakeReturnModal(handForReturn);
+    if (victimIdx !== null && returnIdx !== null) {
+      env._nextActionChoices = { victimCardIdx: victimIdx, returnCardIdx: returnIdx };
+    }
+  }
+
+  const preHandIds = (name === 'chopsticks' || name === 'sake')
+    ? new Set(state.players[PLAYER_IDX].hand.map(c => c.cardId))
+    : null;
+
+  env.step(action);
+  if (env.state.gameOver) { endGame(); return; }
+
+  if (preHandIds) {
+    const gained = env.state.players[PLAYER_IDX].hand.find(c => !preHandIds.has(c.cardId));
+    if (gained) await revealCardAnimation(gained, 'You received');
+  }
+
+  await drainWasabiEvents();
+
+  if (env.state.phase === Phase.CHEFS_CHOICE_SELECT_CARDS && env.state.currentPlayer === PLAYER_IDX) {
+    render();
+    const drawn = env.state.chefChoiceDrawnCards ?? [];
+    if (drawn.length > 0) await revealCardsAnimation(drawn, "Chef's Choice — you drew:");
+    showChefsChoiceModal();
+    return;
+  }
+  if (env.state.phase === Phase.PHASE_DISCARD && env.state.currentPlayer === PLAYER_IDX) {
+    render(); showDiscardModal(); return;
+  }
+
+  render();
+  postRenderCheck();
+}
+
 // ── Action card handler ───────────────────────────────────────────────────────
 async function onActionCardClick(card, player) {
   if (!env) return;
@@ -455,15 +696,18 @@ async function onActionCardClick(card, player) {
   const action = idx + 1;
   if (!env.getLegalActions().includes(action)) return;
 
-  // Step 1: first click selects the card (pending)
-  if (pendingActionCard !== card) {
-    pendingActionCard = card;
-    render();
+  const choice = await showActionChoiceOverlay(card, state.phase);
+  if (choice !== 'play') {
+    if (choice === 'exchange' && state.phase === Phase.PHASE_1) {
+      // Mark this card for swap — don't advance phase yet, wait for belt card click
+      const handIdx = state.players[PLAYER_IDX].hand.indexOf(card);
+      swapIntent = { card, handIdx };
+      render();
+    } else if (choice === 'skip') {
+      await onPassOrCheck(0);
+    }
     return;
   }
-
-  // Step 2: second click confirms — clear pending and proceed
-  pendingActionCard = null;
 
   const name = cardName(card);
   await playActionCardAnimation(name, CARD_DISPLAY_NAMES[name] ?? name);
@@ -538,12 +782,9 @@ async function onPassOrCheck(action) {
   if (state.currentPlayer !== PLAYER_IDX) return;
   const { phase } = state;
 
-  // Cancel a pending action card selection
-  if (action === 0 && pendingActionCard !== null) {
-    pendingActionCard = null;
-    render();
-    return;
-  }
+  swapIntent = null;
+  phase3Selection = null;
+  if (actionChoiceOverlayEl) closeActionChoiceOverlay('cancel', true);
 
   if (phase !== Phase.PHASE_1 && phase !== Phase.PHASE_3 && phase !== Phase.PHASE_4) return;
   if (action === 1 && !env.getLegalActions().includes(1)) return;
@@ -903,7 +1144,9 @@ async function runAiDiscard() {
 
 async function runAiTurn() {
   if (!env || env.state.gameOver) return;
-  pendingActionCard = null; // can't be pending when it's the AI's turn
+  swapIntent = null;
+  phase3Selection = null;
+  if (actionChoiceOverlayEl) closeActionChoiceOverlay('cancel', true);
   (selectedAgent === 'mcts' || selectedAgent === 'mcts2') ? await runMctsAiTurn() : await runSyncAiTurn();
 }
 
@@ -1428,14 +1671,8 @@ function toast(msg, duration = 2500) {
 function startGame() {
   if (mctsWorker) { mctsWorker.terminate(); mctsWorker = null; }
 
-  if (selectedAgent === 'greedy') {
-    agent = new SimpleGreedyAgent();
-  } else if (selectedAgent === 'random') {
-    agent = new RandomAgent();
-  } else {
-    agent = new SimpleGreedyAgent();
-    mctsWorker = new Worker(new URL('./workers/mcts_worker.js', import.meta.url), { type: 'module' });
-  }
+  agent = new SimpleGreedyAgent();
+  mctsWorker = new Worker(new URL('./workers/mcts_worker.js', import.meta.url), { type: 'module' });
 
   env = new OmakaseEnv(2);
   env.reset();
@@ -1443,7 +1680,11 @@ function startGame() {
   p2 = { step: 'SELECT_HAND', handIdx: null, legalBeltIdxs: new Set() };
   chefsSelectedIndices = [];
   aiThinking = false;
-  pendingActionCard = null;
+  actionChoice = null;
+  actionChoiceOverlayEl = null;
+  actionChoiceResolver = null;
+  swapIntent = null;
+  phase3Selection = null;
   beltDealIn = null;
   beltDealAnimating = false;
   lastScores[PLAYER_IDX] = -1;
@@ -1471,11 +1712,15 @@ function startGame() {
   scheduleTurn();
 }
 
-function agentDisplayName(a) {
-  return { greedy: 'Greedy', random: 'Random', mcts: 'IS-MCTS', mcts2: 'IS-MCTS+' }[a] ?? 'AI';
+function agentDisplayName(_a) {
+  const sims = mctsNSims;
+  if (sims <= 500)  return 'Easy';
+  if (sims <= 2000) return 'Advanced';
+  return 'Expert';
 }
 
 function endGame() {
+  if (actionChoiceOverlayEl) closeActionChoiceOverlay('cancel', true);
   aiThinking = false;
   $('thinking-overlay').hidden = true;
 
@@ -1516,7 +1761,9 @@ function renderMiniHand(elId, hand) {
 function renderBreakdown() {
   const container = $('go-breakdown');
   container.innerHTML = '';
-  container.style.cssText = 'display:flex;flex-direction:row;gap:20px;align-items:flex-start;';
+  const isNarrow = window.matchMedia('(max-width: 600px)').matches
+    || window.matchMedia('(max-width: 1024px) and (max-height: 500px) and (orientation: landscape)').matches;
+  container.style.cssText = `display:flex;flex-direction:${isNarrow ? 'column' : 'row'};gap:${isNarrow ? '10px' : '20px'};align-items:flex-start;`;
 
   const makeCol = (hand, header) => {
     const col = document.createElement('div');
@@ -1554,29 +1801,20 @@ function renderBreakdown() {
 function setupNewGameScreen() {
   document.querySelectorAll('.agent-card').forEach(btn => {
     btn.addEventListener('click', () => {
+      const alreadyActive = btn.classList.contains('agent-card--active');
       document.querySelectorAll('.agent-card').forEach(b => {
         b.classList.remove('agent-card--active');
         b.setAttribute('aria-checked', 'false');
       });
       btn.classList.add('agent-card--active');
       btn.setAttribute('aria-checked', 'true');
-      selectedAgent = btn.dataset.agent;
-      $('mcts-options').style.display = (selectedAgent === 'mcts' || selectedAgent === 'mcts2') ? 'block' : 'none';
+      selectedAgent = 'mcts2';
+      mctsNSims = parseInt(btn.dataset.sims ?? '2000', 10);
+      if (alreadyActive) startGame();
     });
   });
 
-  $('mcts-sims').addEventListener('input', e => {
-    mctsNSims = parseInt(e.target.value, 10);
-    $('mcts-sims-val').textContent = mctsNSims;
-  });
-
   $('btn-start').addEventListener('click', startGame);
-
-  $('btn-rules-toggle').addEventListener('click', () => {
-    const panel = $('rules-panel');
-    panel.hidden = !panel.hidden;
-    $('btn-rules-toggle').textContent = panel.hidden ? 'Rules & Sets ▾' : 'Rules & Sets ▴';
-  });
 }
 
 function setupGameScreen() {
