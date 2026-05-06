@@ -47,6 +47,3 @@ python scripts/train_ppo.py --num-players 2 --timesteps 300000
 ```
 
 For a detailed breakdown of the action spaces, observation states, and training commands, please refer to the **TRAINING.md** guide.
-
-## 🎨 Design System
-The UI is built on a custom design system inspired by physical tabletop games and Japanese restaurant menus. See `DESIGN_SYSTEM.md` for styling guidelines, color tokens, and typography rules.
