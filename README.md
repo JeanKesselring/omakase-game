@@ -2,7 +2,7 @@
 
 Omakase is a strategic, browser-based sushi card game where players compete to build the highest-scoring hand. Balance immediate point gains with long-term set completion, navigate adversarial action cards, and outsmart your opponent.
 
-**[Play Omakase](https://your-hosted-link.com)**
+**[Play the Web Game](https://jeankesselring.github.io/omakase-game/web/)** | **[Get the Physical Game](https://omakasegame.com)**
 
 ---
 
